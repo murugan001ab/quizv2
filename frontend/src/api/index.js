@@ -1,4 +1,4 @@
-const BASE = ''  // vite proxy handles /auth /admin /user
+const BASE = 'https://quiz-app-392225bc.fastapicloud.dev'  // vite proxy handles /auth /admin /user
 
 async function req(method, path, body, token) {
   const headers = { 'Content-Type': 'application/json' }
