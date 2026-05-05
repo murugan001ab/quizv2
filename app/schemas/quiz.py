@@ -84,6 +84,9 @@ class AttemptOut(BaseModel):
     submitted: bool
     started_at: datetime
     submitted_at: Optional[datetime]
+    # ↓ populated by the router before returning — not DB columns
+    quiz_title: Optional[str] = None
+    difficulty: Optional[str] = None
 
     class Config:
         from_attributes = True

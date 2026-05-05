@@ -1,7 +1,14 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from database import Base
+
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def now_ist_naive():
+    return datetime.now(IST).replace(tzinfo=None)
 
 
 class User(Base):
@@ -12,6 +19,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # ✅ FIX HERE
+    created_at = Column(DateTime, default=now_ist_naive)
 
     attempts = relationship("QuizAttempt", back_populates="user")

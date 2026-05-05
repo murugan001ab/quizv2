@@ -8,20 +8,20 @@ export default defineConfig({
     proxy: {
       '/auth': 'http://localhost:8000',
       '/user': 'http://localhost:8000',
-      '/ws': { target: 'ws://localhost:8000', ws: true },
-
-      // For /admin routes: only proxy to backend when it's a fetch/XHR API call.
-      // Browser page refreshes send Accept: text/html — those should fall through
-      // to Vite's SPA index.html, NOT get forwarded to FastAPI (which returns 404).
+      '/ws': {
+        target: 'ws://localhost:8000',
+        ws: true,
+      },
       '/admin': {
         target: 'http://localhost:8000',
+        // Only bypass (serve index.html) for browser navigation requests.
+        // fetch/XHR calls must reach FastAPI — return undefined to proxy them.
         bypass(req) {
           const accept = req.headers['accept'] || ''
-          // Browser navigation requests include text/html — serve index.html instead
-          if (accept.includes('text/html')) {
+          if (accept.includes('text/html') && !accept.includes('application/json')) {
             return '/index.html'
           }
-          // fetch/XHR calls (application/json etc.) → proxy to FastAPI
+          // returning undefined (nothing) → Vite proxies the request to FastAPI
         },
       },
     },

@@ -1,11 +1,21 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import enum
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, ForeignKey,
     Enum as SAEnum, Text, JSON
 )
 from sqlalchemy.orm import relationship
-from datetime import datetime
 from database import Base
+
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def now_ist_naive():
+    """
+    Return IST time but as naive datetime (for DB)
+    """
+    return datetime.now(IST).replace(tzinfo=None)
 
 
 class DifficultyLevel(str, enum.Enum):
@@ -21,12 +31,17 @@ class Quiz(Base):
     title = Column(String, nullable=False)
     description = Column(Text)
     difficulty = Column(SAEnum(DifficultyLevel), nullable=False)
-    subject = Column(String, nullable=False)   # e.g. Tamil, Science, Physics, Maths
-    topic = Column(String, nullable=False)      # sub-topic within subject
+    subject = Column(String, nullable=False)
+    topic = Column(String, nullable=False)
+
+    # DB stores IST naive
     scheduled_start = Column(DateTime, nullable=True)
     scheduled_end = Column(DateTime, nullable=True)
+
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # ✅ FIX: use IST naive instead of utcnow
+    created_at = Column(DateTime, default=now_ist_naive)
 
     questions = relationship("Question", back_populates="quiz", cascade="all, delete-orphan")
     attempts = relationship("QuizAttempt", back_populates="quiz")
@@ -38,8 +53,8 @@ class Question(Base):
     id = Column(Integer, primary_key=True, index=True)
     quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
     text = Column(Text, nullable=False)
-    options = Column(JSON, nullable=False)      # list of 4 strings
-    correct_option = Column(Integer, nullable=False)  # index 0-3
+    options = Column(JSON, nullable=False)
+    correct_option = Column(Integer, nullable=False)
     explanation = Column(Text)
 
     quiz = relationship("Quiz", back_populates="questions")
@@ -51,11 +66,14 @@ class QuizAttempt(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
-    answers = Column(JSON, default={})          # {question_id: chosen_option}
+
+    answers = Column(JSON, default={})
     score = Column(Integer, default=0)
     total = Column(Integer, default=0)
     submitted = Column(Boolean, default=False)
-    started_at = Column(DateTime, default=datetime.utcnow)
+
+    # ✅ FIX: IST naive
+    started_at = Column(DateTime, default=now_ist_naive)
     submitted_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="attempts")

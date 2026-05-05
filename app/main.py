@@ -2,17 +2,15 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from app.database import init_db
-from app.routers import auth, admin, user, ws
-from app.core.security import hash_password
-from app.models.user import User
-from app.database import AsyncSessionLocal
+from database import init_db          # ← fixed: was "from app.database"
+from routers import auth, admin, user, ws   # ← fixed: was "from app.routers"
+from core.security import hash_password     # ← fixed
+from models.user import User                # ← fixed
+from database import AsyncSessionLocal      # ← fixed
 from sqlalchemy import select
 
 load_dotenv()
 
-# List your frontend URLs here — comma-separated in env var ALLOWED_ORIGINS
-# e.g. ALLOWED_ORIGINS=https://myapp.vercel.app,https://myapp.netlify.app
 _origins_env = os.getenv("ALLOWED_ORIGINS", "*")
 ALLOWED_ORIGINS = [o.strip() for o in _origins_env.split(",")]
 
@@ -55,8 +53,4 @@ async def startup():
 
 @app.get("/")
 async def root():
-    return {
-        "message": "Quiz App API",
-        "docs": "/docs",
-        "redoc": "/redoc",
-    }
+    return {"message": "Quiz App API", "docs": "/docs"}
