@@ -1,11 +1,20 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import init_db
-from routers import auth, admin, user, ws
-from core.security import hash_password
-from models.user import User
-from database import AsyncSessionLocal
+from dotenv import load_dotenv
+from app.database import init_db
+from app.routers import auth, admin, user, ws
+from app.core.security import hash_password
+from app.models.user import User
+from app.database import AsyncSessionLocal
 from sqlalchemy import select
+
+load_dotenv()
+
+# List your frontend URLs here — comma-separated in env var ALLOWED_ORIGINS
+# e.g. ALLOWED_ORIGINS=https://myapp.vercel.app,https://myapp.netlify.app
+_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
+ALLOWED_ORIGINS = [o.strip() for o in _origins_env.split(",")]
 
 app = FastAPI(
     title="Quiz App",
@@ -15,7 +24,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,7 +39,6 @@ app.include_router(ws.router)
 @app.on_event("startup")
 async def startup():
     await init_db()
-    # Create default admin if not exists
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.username == "admin"))
         if not result.scalar_one_or_none():

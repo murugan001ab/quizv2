@@ -1,4 +1,4 @@
-const BASE = 'https://quiz-app-392225bc.fastapicloud.dev'  // vite proxy handles /auth /admin /user
+const BASE = import.meta.env.VITE_API_URL || ''
 
 async function req(method, path, body, token) {
   const headers = { 'Content-Type': 'application/json' }
@@ -21,7 +21,7 @@ export const api = {
   register: (data) => req('POST', '/auth/register', data),
   login: async (username, password) => {
     const form = new URLSearchParams({ username, password })
-    const res = await fetch('/auth/login', { method: 'POST', body: form })
+    const res = await fetch(BASE + '/auth/login', { method: 'POST', body: form })
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Login failed' }))
       throw new Error(err.detail || 'Login failed')
