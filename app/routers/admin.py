@@ -2,16 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import List, Optional
-from database import get_db
-from models.quiz import Quiz, Question, QuizAttempt
-from models.user import User
-from schemas.quiz import (
+from app.database import get_db
+from app.models.quiz import Quiz, Question, QuizAttempt
+from app.models.user import User
+from app.schemas.quiz import (
     QuizCreate, QuizUpdate, QuizOut, QuizDetail,
     QuestionCreate, QuestionOut, QuestionOutWithAnswer,
     AttemptOut
 )
-from schemas.user import UserOut
-from core.security import get_admin_user
+from app.schemas.user import UserOut
+from app.core.security import get_admin_user
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -25,9 +25,9 @@ async def list_users(db: AsyncSession = Depends(get_db), _=Depends(get_admin_use
 
 @router.get("/stats")
 async def dashboard_stats(db: AsyncSession = Depends(get_db), _=Depends(get_admin_user)):
-    total_users = (await db.execute(func.count(User.id))).scalar()
-    total_quizzes = (await db.execute(func.count(Quiz.id))).scalar()
-    total_attempts = (await db.execute(func.count(QuizAttempt.id))).scalar()
+    total_users = (await db.execute(select(func.count(User.id)))).scalar()
+    total_quizzes = (await db.execute(select(func.count(Quiz.id)))).scalar()
+    total_attempts = (await db.execute(select(func.count(QuizAttempt.id)))).scalar()
     active_attempts = (await db.execute(
         select(func.count(QuizAttempt.id)).where(QuizAttempt.submitted == False)
     )).scalar()
@@ -35,7 +35,7 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db), _=Depends(get_admi
         "total_users": total_users,
         "total_quizzes": total_quizzes,
         "total_attempts": total_attempts,
-        "active_test_takers": active_attempts,
+        "live_takers": active_attempts,
     }
 
 
@@ -156,4 +156,20 @@ async def delete_question(question_id: int, db: AsyncSession = Depends(get_db), 
 @router.get("/quizzes/{quiz_id}/attempts", response_model=List[AttemptOut])
 async def quiz_attempts(quiz_id: int, db: AsyncSession = Depends(get_db), _=Depends(get_admin_user)):
     result = await db.execute(select(QuizAttempt).where(QuizAttempt.quiz_id == quiz_id))
-    return result.scalars().all()
+    attempts = result.scalars().all()
+    # Enrich with quiz info
+    quiz_r = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
+    quiz = quiz_r.scalar_one_or_none()
+    enriched = []
+    for a in attempts:
+        user_r = await db.execute(select(User).where(User.id == a.user_id))
+        user = user_r.scalar_one_or_none()
+        enriched.append(AttemptOut(
+            id=a.id, quiz_id=a.quiz_id, user_id=a.user_id,
+            score=a.score, total=a.total, submitted=a.submitted,
+            started_at=a.started_at, submitted_at=a.submitted_at,
+            quiz_title=quiz.title if quiz else None,
+            difficulty=quiz.difficulty.value if quiz else None,
+            username=user.username if user else None,
+        ))
+    return enriched

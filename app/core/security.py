@@ -8,8 +8,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from database import get_db
-from models.user import User
+from app.database import get_db
+from app.models.user import User
 
 load_dotenv()
 
@@ -46,10 +46,10 @@ async def get_current_user(
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")          # comes back as a string
+        user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-        user_id = int(user_id)                # ← safe cast after None-check
+        user_id = int(user_id)
     except (JWTError, ValueError):
         raise credentials_exception
 

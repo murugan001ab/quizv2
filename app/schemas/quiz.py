@@ -1,14 +1,13 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime
-from models.quiz import DifficultyLevel
+from app.models.quiz import DifficultyLevel
 
 
-# ── Question ──────────────────────────────────────────────
 class QuestionCreate(BaseModel):
     text: str
-    options: List[str]          # exactly 4 items
-    correct_option: int         # 0-3
+    options: List[str]
+    correct_option: int
     explanation: Optional[str] = None
 
 
@@ -27,7 +26,6 @@ class QuestionOutWithAnswer(QuestionOut):
     correct_option: int
 
 
-# ── Quiz ──────────────────────────────────────────────────
 class QuizCreate(BaseModel):
     title: str
     description: Optional[str] = None
@@ -70,9 +68,8 @@ class QuizDetail(QuizOut):
     questions: List[QuestionOut] = []
 
 
-# ── Attempt ───────────────────────────────────────────────
 class SubmitAnswers(BaseModel):
-    answers: Dict[int, int]     # {question_id: chosen_option}
+    answers: Dict[int, int]
 
 
 class AttemptOut(BaseModel):
@@ -84,14 +81,14 @@ class AttemptOut(BaseModel):
     submitted: bool
     started_at: datetime
     submitted_at: Optional[datetime]
-    # ↓ populated by the router before returning — not DB columns
     quiz_title: Optional[str] = None
     difficulty: Optional[str] = None
+    username: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 
 class AttemptResult(AttemptOut):
-    answers: Dict[int, int]
+    answers: Dict[str, int]   # str keys — JSON always serialises dict keys as strings
     questions: List[QuestionOutWithAnswer] = []

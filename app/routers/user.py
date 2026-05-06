@@ -6,18 +6,15 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import List, Optional
 
-from database import get_db
-from models.quiz import Quiz, Question, QuizAttempt
-from models.user import User
-from schemas.quiz import QuizOut, QuizDetail, SubmitAnswers, AttemptOut, AttemptResult
-from core.security import get_current_user
-from ws_manager import manager
+from app.database import get_db
+from app.models.quiz import Quiz, Question, QuizAttempt
+from app.models.user import User
+from app.schemas.quiz import QuizOut, QuizDetail, SubmitAnswers, AttemptOut, AttemptResult
+from app.core.security import get_current_user
+from app.ws_manager import manager
 
 router = APIRouter(prefix="/user", tags=["User"])
 
-# ──────────────────────────────────────────────────────────
-# TIMEZONE (IST)
-# ──────────────────────────────────────────────────────────
 IST = ZoneInfo("Asia/Kolkata")
 
 
@@ -26,9 +23,6 @@ def now_ist():
 
 
 def normalize_ist(dt):
-    """
-    DB stores IST as naive → convert to IST aware
-    """
     if dt is None:
         return None
     if dt.tzinfo is None:
@@ -37,18 +31,12 @@ def normalize_ist(dt):
 
 
 def to_naive(dt):
-    """
-    Convert aware → naive (for DB insert)
-    """
     if dt is None:
         return None
     return dt.replace(tzinfo=None)
 
 
-# ──────────────────────────────────────────────────────────
-# HELPER
-# ──────────────────────────────────────────────────────────
-def enrich_attempt(attempt: QuizAttempt, quiz: Optional[Quiz]) -> dict:
+def enrich_attempt(attempt: QuizAttempt, quiz: Optional[Quiz], user: Optional[User] = None) -> dict:
     return {
         "id": attempt.id,
         "quiz_id": attempt.quiz_id,
@@ -60,12 +48,10 @@ def enrich_attempt(attempt: QuizAttempt, quiz: Optional[Quiz]) -> dict:
         "submitted_at": attempt.submitted_at,
         "quiz_title": quiz.title if quiz else None,
         "difficulty": quiz.difficulty.value if quiz else None,
+        "username": user.username if user else None,
     }
 
 
-# ──────────────────────────────────────────────────────────
-# GET QUIZZES
-# ──────────────────────────────────────────────────────────
 @router.get("/quizzes", response_model=List[QuizOut])
 async def available_quizzes(
     difficulty: Optional[str] = None,
@@ -74,27 +60,20 @@ async def available_quizzes(
     current_user: User = Depends(get_current_user),
 ):
     q = select(Quiz).where(Quiz.is_active == True)
-
     if difficulty:
         q = q.where(Quiz.difficulty == difficulty)
     if subject:
         q = q.where(Quiz.subject == subject)
-
     result = await db.execute(q)
     quizzes = result.scalars().all()
-
     for quiz in quizzes:
         count = await db.execute(
             select(func.count(Question.id)).where(Question.quiz_id == quiz.id)
         )
         quiz.question_count = count.scalar()
-
     return quizzes
 
 
-# ──────────────────────────────────────────────────────────
-# GET QUIZ
-# ──────────────────────────────────────────────────────────
 @router.get("/quizzes/{quiz_id}", response_model=QuizDetail)
 async def get_quiz(
     quiz_id: int,
@@ -102,66 +81,35 @@ async def get_quiz(
     current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(Quiz)
-        .options(selectinload(Quiz.questions))
+        select(Quiz).options(selectinload(Quiz.questions))
         .where(Quiz.id == quiz_id, Quiz.is_active == True)
     )
     quiz = result.scalar_one_or_none()
-
     if not quiz:
         raise HTTPException(404, "Quiz not found")
-
     now = now_ist()
-    start = normalize_ist(quiz.scheduled_start)
     end = normalize_ist(quiz.scheduled_end)
-
     if end and now > end:
         raise HTTPException(403, "Quiz time has ended")
-
-    is_locked = bool(start and now < start)
-
     quiz.question_count = len(quiz.questions)
-
-    return {
-        **quiz.__dict__,
-        "questions": quiz.questions,
-        "question_count": quiz.question_count,
-        "is_locked": is_locked,
-        "start_time": start,
-        "end_time": end,
-    }
+    return quiz
 
 
-# ──────────────────────────────────────────────────────────
-# START QUIZ
-# ──────────────────────────────────────────────────────────
 @router.post("/quizzes/{quiz_id}/start", response_model=AttemptOut, status_code=201)
 async def start_quiz(
     quiz_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(
-        select(Quiz).where(Quiz.id == quiz_id, Quiz.is_active == True)
-    )
+    result = await db.execute(select(Quiz).where(Quiz.id == quiz_id, Quiz.is_active == True))
     quiz = result.scalar_one_or_none()
-
     if not quiz:
         raise HTTPException(404, "Quiz not found")
-
     now = now_ist()
     start = normalize_ist(quiz.scheduled_start)
     end = normalize_ist(quiz.scheduled_end)
-
     if start and now < start:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "message": "Quiz not started",
-                "start_time": start.isoformat(),
-            },
-        )
-
+        raise HTTPException(403, {"message": "Quiz not started yet", "start_time": start.isoformat()})
     if end and now > end:
         raise HTTPException(403, "Quiz time has ended")
 
@@ -173,18 +121,14 @@ async def start_quiz(
         )
     )
     attempt = existing.scalar_one_or_none()
-
     if not attempt:
         attempt = QuizAttempt(
-            user_id=current_user.id,
-            quiz_id=quiz_id,
-            answers={},
-            started_at=to_naive(now),   # ✅ FIX HERE
+            user_id=current_user.id, quiz_id=quiz_id,
+            answers={}, started_at=to_naive(now),
         )
         db.add(attempt)
         await db.commit()
         await db.refresh(attempt)
-
         await manager.broadcast({
             "type": "quiz_started",
             "user": current_user.username,
@@ -195,13 +139,9 @@ async def start_quiz(
             "attempt_id": attempt.id,
             "ts": now.isoformat(),
         })
+    return AttemptOut(**enrich_attempt(attempt, quiz, current_user))
 
-    return AttemptOut(**enrich_attempt(attempt, quiz))
 
-
-# ──────────────────────────────────────────────────────────
-# SUBMIT QUIZ
-# ──────────────────────────────────────────────────────────
 @router.post("/attempts/{attempt_id}/submit", response_model=AttemptResult)
 async def submit_quiz(
     attempt_id: int,
@@ -216,39 +156,90 @@ async def submit_quiz(
         )
     )
     attempt = result.scalar_one_or_none()
-
     if not attempt:
         raise HTTPException(404, "Attempt not found")
-
     if attempt.submitted:
         raise HTTPException(400, "Already submitted")
 
-    quiz_result = await db.execute(select(Quiz).where(Quiz.id == attempt.quiz_id))
-    quiz = quiz_result.scalar_one_or_none()
-
-    q_result = await db.execute(
-        select(Question).where(Question.quiz_id == attempt.quiz_id)
-    )
+    quiz_r = await db.execute(select(Quiz).where(Quiz.id == attempt.quiz_id))
+    quiz = quiz_r.scalar_one_or_none()
+    q_result = await db.execute(select(Question).where(Question.quiz_id == attempt.quiz_id))
     questions = q_result.scalars().all()
 
-    score = sum(
-        1 for q in questions
-        if data.answers.get(q.id) == q.correct_option
-    )
-
+    score = sum(1 for q in questions if data.answers.get(q.id) == q.correct_option)
     now = now_ist()
 
     attempt.answers = {str(k): v for k, v in data.answers.items()}
     attempt.score = score
     attempt.total = len(questions)
     attempt.submitted = True
-    attempt.submitted_at = to_naive(now)   # ✅ FIX HERE
-
+    attempt.submitted_at = to_naive(now)
     await db.commit()
     await db.refresh(attempt)
 
+    await manager.broadcast({
+        "type": "quiz_submitted",
+        "user": current_user.username,
+        "quiz_id": attempt.quiz_id,
+        "quiz_title": quiz.title if quiz else "",
+        "difficulty": quiz.difficulty.value if quiz else "",
+        "subject": quiz.subject if quiz else "",
+        "attempt_id": attempt.id,
+        "score": score,
+        "total": len(questions),
+        "ts": now.isoformat(),
+    })
+
     return AttemptResult(
-        **enrich_attempt(attempt, quiz),
-        answers={int(k): v for k, v in attempt.answers.items()},
+        **enrich_attempt(attempt, quiz, current_user),
+        answers={str(k): v for k, v in attempt.answers.items()},
+        questions=questions,
+    )
+
+
+@router.get("/results", response_model=List[AttemptOut])
+async def my_results(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(QuizAttempt)
+        .where(QuizAttempt.user_id == current_user.id, QuizAttempt.submitted == True)
+        .order_by(QuizAttempt.submitted_at.desc())
+    )
+    attempts = result.scalars().all()
+    enriched = []
+    for attempt in attempts:
+        quiz_r = await db.execute(select(Quiz).where(Quiz.id == attempt.quiz_id))
+        quiz = quiz_r.scalar_one_or_none()
+        enriched.append(AttemptOut(**enrich_attempt(attempt, quiz, current_user)))
+    return enriched
+
+
+@router.get("/results/{attempt_id}", response_model=AttemptResult)
+async def result_detail(
+    attempt_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(QuizAttempt).where(
+            QuizAttempt.id == attempt_id,
+            QuizAttempt.user_id == current_user.id,
+            QuizAttempt.submitted == True,
+        )
+    )
+    attempt = result.scalar_one_or_none()
+    if not attempt:
+        raise HTTPException(404, "Result not found")
+
+    quiz_r = await db.execute(select(Quiz).where(Quiz.id == attempt.quiz_id))
+    quiz = quiz_r.scalar_one_or_none()
+    q_result = await db.execute(select(Question).where(Question.quiz_id == attempt.quiz_id))
+    questions = q_result.scalars().all()
+
+    return AttemptResult(
+        **enrich_attempt(attempt, quiz, current_user),
+        answers={str(k): v for k, v in attempt.answers.items()},
         questions=questions,
     )

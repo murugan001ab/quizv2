@@ -2,12 +2,11 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from database import init_db          # ← fixed: was "from app.database"
-from routers import auth, admin, user, ws   # ← fixed: was "from app.routers"
-from core.security import hash_password     # ← fixed
-from models.user import User                # ← fixed
-from database import AsyncSessionLocal      # ← fixed
 from sqlalchemy import select
+from app.database import init_db, AsyncSessionLocal
+from app.routers import auth, admin, user, ws
+from app.core.security import hash_password
+from app.models.user import User
 
 load_dotenv()
 

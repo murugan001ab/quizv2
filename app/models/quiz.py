@@ -6,15 +6,12 @@ from sqlalchemy import (
     Enum as SAEnum, Text, JSON
 )
 from sqlalchemy.orm import relationship
-from database import Base
+from app.database import Base
 
 IST = ZoneInfo("Asia/Kolkata")
 
 
 def now_ist_naive():
-    """
-    Return IST time but as naive datetime (for DB)
-    """
     return datetime.now(IST).replace(tzinfo=None)
 
 
@@ -33,14 +30,9 @@ class Quiz(Base):
     difficulty = Column(SAEnum(DifficultyLevel), nullable=False)
     subject = Column(String, nullable=False)
     topic = Column(String, nullable=False)
-
-    # DB stores IST naive
     scheduled_start = Column(DateTime, nullable=True)
     scheduled_end = Column(DateTime, nullable=True)
-
     is_active = Column(Boolean, default=True)
-
-    # ✅ FIX: use IST naive instead of utcnow
     created_at = Column(DateTime, default=now_ist_naive)
 
     questions = relationship("Question", back_populates="quiz", cascade="all, delete-orphan")
@@ -56,6 +48,7 @@ class Question(Base):
     options = Column(JSON, nullable=False)
     correct_option = Column(Integer, nullable=False)
     explanation = Column(Text)
+    year = Column(Text)
 
     quiz = relationship("Quiz", back_populates="questions")
 
@@ -66,13 +59,10 @@ class QuizAttempt(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     quiz_id = Column(Integer, ForeignKey("quizzes.id"), nullable=False)
-
     answers = Column(JSON, default={})
     score = Column(Integer, default=0)
     total = Column(Integer, default=0)
     submitted = Column(Boolean, default=False)
-
-    # ✅ FIX: IST naive
     started_at = Column(DateTime, default=now_ist_naive)
     submitted_at = Column(DateTime, nullable=True)
 
