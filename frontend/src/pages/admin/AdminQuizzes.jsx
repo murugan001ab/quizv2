@@ -322,11 +322,15 @@ export default function AdminQuizzes() {
 
  const getQuetions = async (id) => {
   try {
+     setLoading(true)
     const q = await api.adminQuiz(token, id)
     setDetailQuiz(q)
   }
   catch (e) {
     toast(e.message, 'error')
+  }
+  finally{
+    setLoading(false)
   }
 }
 

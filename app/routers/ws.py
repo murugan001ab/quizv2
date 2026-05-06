@@ -16,15 +16,25 @@ def _verify_token(token: str) -> dict | None:
 
 
 @router.websocket("/ws/admin")
-async def admin_ws(websocket: WebSocket, token: str = Query(...)):
+async def admin_ws(
+    websocket: WebSocket,
+    token: str = Query(...)
+):
     payload = _verify_token(token)
+
     if not payload:
         await websocket.close(code=1008)
         return
+
     await manager.connect(websocket)
+
     try:
         while True:
             await asyncio.sleep(30)
-            await websocket.send_text(json.dumps({"type": "ping"}))
+
+            await websocket.send_json({
+                "type": "ping"
+            })
+
     except WebSocketDisconnect:
         manager.disconnect(websocket)

@@ -122,7 +122,7 @@ export default function AdminMonitor() {
 
     const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
     // Dev: Vite proxies /ws → localhost:8000, so use same host
-    const url = `${proto}://${window.location.host}/ws/admin?token=${token}`
+    const url = `wss://quiz.mpcashews.in/ws/admin?token=${token}`
     const ws = new WebSocket(url)
     wsRef.current = ws
 
