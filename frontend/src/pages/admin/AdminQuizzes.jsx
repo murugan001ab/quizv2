@@ -23,24 +23,24 @@ function AttemptsModal({ quizId, quizTitle, token, onClose }) {
       {loading ? <Loading /> : attempts.length === 0
         ? <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text3)' }}>No attempts yet.</div>
         : <div className="table-wrap">
-            <table>
-              <thead><tr><th>User</th><th>Score</th><th>%</th><th>Submitted</th></tr></thead>
-              <tbody>
-                {attempts.map(a => {
-                  const pct = a.total ? Math.round((a.score / a.total) * 100) : null
-                  const color = pct == null ? 'var(--text3)' : pct >= 80 ? 'var(--accent)' : pct >= 60 ? 'var(--blue)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)'
-                  return (
-                    <tr key={a.id}>
-                      <td style={{ color: 'var(--text)', fontWeight: 500 }}>{a.username}</td>
-                      <td>{a.submitted_at ? `${a.score}/${a.total}` : <span style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>In progress</span>}</td>
-                      <td>{pct != null && a.submitted_at ? <span style={{ fontFamily: 'var(--font-head)', fontWeight: 700, color }}>{pct}%</span> : '—'}</td>
-                      <td>{a.submitted_at ? new Date(a.submitted_at).toLocaleString() : '—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <table>
+            <thead><tr><th>User</th><th>Score</th><th>%</th><th>Submitted</th></tr></thead>
+            <tbody>
+              {attempts.map(a => {
+                const pct = a.total ? Math.round((a.score / a.total) * 100) : null
+                const color = pct == null ? 'var(--text3)' : pct >= 80 ? 'var(--accent)' : pct >= 60 ? 'var(--blue)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)'
+                return (
+                  <tr key={a.id}>
+                    <td style={{ color: 'var(--text)', fontWeight: 500 }}>{a.username}</td>
+                    <td>{a.submitted_at ? `${a.score}/${a.total}` : <span style={{ color: 'var(--accent)', fontSize: '0.75rem' }}>In progress</span>}</td>
+                    <td>{pct != null && a.submitted_at ? <span style={{ fontFamily: 'var(--font-head)', fontWeight: 700, color }}>{pct}%</span> : '—'}</td>
+                    <td>{a.submitted_at ? new Date(a.submitted_at).toLocaleString() : '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       }
     </Modal>
   )
@@ -114,10 +114,15 @@ function QuizDetail({ quiz, token, toast, onBack, onUpdated }) {
   const [showAddQ, setShowAddQ] = useState(false)
   const [editQ, setEditQ] = useState(null)
   const [deleting, setDeleting] = useState(null)
-
   const reload = async () => {
-    try { const q = await api.adminQuiz(token, quiz.id); setQuestions(q.questions || []) }
-    catch (e) { toast(e.message, 'error') }
+    try {
+      const q = await api.adminQuiz(token, quiz.id)
+      setQuestions(q.questions || [])
+      console.log(q)
+    }
+    catch (e) {
+      toast(e.message, 'error')
+    }
   }
 
   const deleteQ = async (qId) => {
@@ -140,52 +145,52 @@ function QuizDetail({ quiz, token, toast, onBack, onUpdated }) {
 
       {questions.length === 0
         ? <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text3)' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📝</div>
-            No questions yet — add the first one!
-          </div>
+          <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>📝</div>
+          No questions yet — add the first one!
+        </div>
         : <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-            {questions.map((q, i) => (
-              <div key={q.id} className="card fade-up" style={{ animationDelay: `${i * 0.03}s` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Q{i + 1}</div>
-                    <p style={{ fontWeight: 500, marginBottom: '0.75rem', lineHeight: 1.6 }}>{q.text}</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.375rem' }}>
-                      {q.options.map((opt, j) => (
-                        <div key={j} style={{
-                          display: 'flex', alignItems: 'center', gap: '0.5rem',
-                          padding: '0.375rem 0.625rem',
-                          background: q.correct_option === j ? 'rgba(52,211,153,0.1)' : 'var(--bg3)',
-                          border: `1px solid ${q.correct_option === j ? 'rgba(52,211,153,0.3)' : 'var(--border)'}`,
-                          borderRadius: 6, fontSize: '0.8rem',
-                        }}>
-                          <span style={{
-                            width: 20, height: 20, borderRadius: 4, flexShrink: 0,
-                            background: q.correct_option === j ? 'var(--accent2)' : 'var(--card2)',
-                            color: q.correct_option === j ? '#0a0a0f' : 'var(--text3)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.65rem', fontWeight: 700, fontFamily: 'var(--font-head)',
-                          }}>{KEYS[j]}</span>
-                          <span style={{ color: q.correct_option === j ? 'var(--accent2)' : 'var(--text2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {q.explanation && (
-                      <div style={{ marginTop: '0.625rem', padding: '0.5rem 0.75rem', background: 'var(--bg3)', borderRadius: 6, fontSize: '0.8rem', color: 'var(--text3)', borderLeft: '2px solid var(--accent)' }}>
-                        💡 {q.explanation}
+          {questions.map((q, i) => (
+            <div key={q.id} className="card fade-up" style={{ animationDelay: `${i * 0.03}s` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.375rem' }}>Q{i + 1}</div>
+                  <p style={{ fontWeight: 500, marginBottom: '0.75rem', lineHeight: 1.6 }}>{q.text}</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.375rem' }}>
+                    {q.options.map((opt, j) => (
+                      <div key={j} style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        padding: '0.375rem 0.625rem',
+                        background: q.correct_option === j ? 'rgba(52,211,153,0.1)' : 'var(--bg3)',
+                        border: `1px solid ${q.correct_option === j ? 'rgba(52,211,153,0.3)' : 'var(--border)'}`,
+                        borderRadius: 6, fontSize: '0.8rem',
+                      }}>
+                        <span style={{
+                          width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+                          background: q.correct_option === j ? 'var(--accent2)' : 'var(--card2)',
+                          color: q.correct_option === j ? '#0a0a0f' : 'var(--text3)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.65rem', fontWeight: 700, fontFamily: 'var(--font-head)',
+                        }}>{KEYS[j]}</span>
+                        <span style={{ color: q.correct_option === j ? 'var(--accent2)' : 'var(--text2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt}</span>
                       </div>
-                    )}
+                    ))}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setEditQ(q)}>Edit</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => deleteQ(q.id)} disabled={deleting === q.id}>
-                      {deleting === q.id ? <Spinner sm /> : 'Del'}
-                    </button>
-                  </div>
+                  {q.explanation && (
+                    <div style={{ marginTop: '0.625rem', padding: '0.5rem 0.75rem', background: 'var(--bg3)', borderRadius: 6, fontSize: '0.8rem', color: 'var(--text3)', borderLeft: '2px solid var(--accent)' }}>
+                      💡 {q.explanation}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setEditQ(q)}>Edit</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => deleteQ(q.id)} disabled={deleting === q.id}>
+                    {deleting === q.id ? <Spinner sm /> : 'Del'}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
       }
 
       {(showAddQ || editQ) && (
@@ -289,16 +294,41 @@ export default function AdminQuizzes() {
 
   const load = async () => {
     setLoading(true)
-    const params = new URLSearchParams()
-    if (filterDiff !== 'All') params.set('difficulty', filterDiff)
-    if (filterSubject !== 'All') params.set('subject', filterSubject)
-    const q = params.toString() ? `?${params}` : ''
-    try { setQuizzes(await api.adminQuizzes(token, q)) }
-    catch (e) { toast(e.message, 'error') }
-    finally { setLoading(false) }
-  }
 
+    const params = new URLSearchParams()
+
+    if (filterDiff !== 'All') {
+      params.set('difficulty', filterDiff)
+    }
+
+    if (filterSubject !== 'All') {
+      params.set('subject', filterSubject)
+    }
+
+    const q = params.toString() ? `?${params}` : ''
+
+    try {
+      const data = await api.adminQuizzes(token, q)
+      setQuizzes(data)
+    }
+    catch (e) {
+      toast(e.message, 'error')
+    }
+    finally {
+      setLoading(false)
+    }
+  }
   useEffect(() => { load() }, [filterDiff, filterSubject])
+
+ const getQuetions = async (id) => {
+  try {
+    const q = await api.adminQuiz(token, id)
+    setDetailQuiz(q)
+  }
+  catch (e) {
+    toast(e.message, 'error')
+  }
+}
 
   const deleteQuiz = async (id) => {
     if (!window.confirm('Delete this quiz and all its questions?')) return
@@ -342,71 +372,79 @@ export default function AdminQuizzes() {
 
       {loading ? <Loading /> : quizzes.length === 0
         ? <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text3)' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
-            <div style={{ fontSize: '1.1rem', color: 'var(--text2)', marginBottom: '0.5rem' }}>No quizzes found</div>
-            <div style={{ fontSize: '0.875rem', marginBottom: '1.5rem' }}>Create your first quiz to get started.</div>
-            <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ Create Quiz</button>
-          </div>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
+          <div style={{ fontSize: '1.1rem', color: 'var(--text2)', marginBottom: '0.5rem' }}>No quizzes found</div>
+          <div style={{ fontSize: '0.875rem', marginBottom: '1.5rem' }}>Create your first quiz to get started.</div>
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ Create Quiz</button>
+        </div>
         : <div className="card fade-up-2" style={{ padding: 0 }}>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Title</th><th>Subject / Topic</th><th>Difficulty</th>
-                    <th>Questions</th><th>Status</th><th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quizzes.map((q, i) => {
-                    const now = new Date()
-                    const start = q.scheduled_start ? new Date(q.scheduled_start) : null
-                    const end = q.scheduled_end ? new Date(q.scheduled_end) : null
-                    const isLive = (!start || now >= start) && (!end || now <= end)
-                    const isUpcoming = start && now < start
-                    const isEnded = end && now > end
-                    return (
-                      <tr key={q.id} className="fade-up" style={{ animationDelay: `${i * 0.03}s` }}>
-                        <td>
-                          <div style={{ fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            {q.title}
-                          </div>
-                        </td>
-                        <td>
-                          <div style={{ fontSize: '0.875rem' }}>{q.subject}</div>
-                          {q.topic && <div style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>{q.topic}</div>}
-                        </td>
-                        <td><DiffBadge level={q.difficulty} /></td>
-                        <td>
-                          <span style={{ fontFamily: 'var(--font-head)', fontWeight: 700 }}>{q.question_count ?? 0}</span>
-                          <span style={{ color: 'var(--text3)', fontSize: '0.8rem' }}> Qs</span>
-                        </td>
-                        <td>
-                          {isUpcoming && <span className="badge badge-blue">Upcoming</span>}
-                          {isLive && !isEnded && (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: 'var(--accent)' }}>
-                              <span className="live-dot" />LIVE
-                            </span>
-                          )}
-                          {isEnded && <span className="badge badge-gray">Ended</span>}
-                          {!start && !end && <span style={{ color: 'var(--text3)', fontSize: '0.8rem' }}>Always open</span>}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setDetailQuiz(q)}>Questions</button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setAttemptsModal(q)}>Attempts</button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setEditQuiz(q)}>Edit</button>
-                            <button className="btn btn-danger btn-sm" onClick={() => deleteQuiz(q.id)} disabled={deleting === q.id}>
-                              {deleting === q.id ? <Spinner sm /> : 'Del'}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th><th>Subject / Topic</th><th>Difficulty</th>
+                  <th>Questions</th><th>Status</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quizzes.map((q, i) => {
+                  const now = new Date()
+                  const start = q.scheduled_start ? new Date(q.scheduled_start) : null
+                  const end = q.scheduled_end ? new Date(q.scheduled_end) : null
+                  const isLive = (!start || now >= start) && (!end || now <= end)
+                  const isUpcoming = start && now < start
+                  const isEnded = end && now > end
+                  return (
+                    <tr key={q.id} className="fade-up" style={{ animationDelay: `${i * 0.03}s` }}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {q.title}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '0.875rem' }}>{q.subject}</div>
+                        {q.topic && <div style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>{q.topic}</div>}
+                      </td>
+                      <td><DiffBadge level={q.difficulty} /></td>
+                      <td>
+                        <span style={{ fontFamily: 'var(--font-head)', fontWeight: 700 }}>{q.question_count ?? 0}</span>
+                        <span style={{ color: 'var(--text3)', fontSize: '0.8rem' }}> Qs</span>
+                      </td>
+                      <td>
+                        {isUpcoming && <span className="badge badge-blue">Upcoming</span>}
+                        {isLive && !isEnded && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: 'var(--accent)' }}>
+                            <span className="live-dot" />LIVE
+                          </span>
+                        )}
+                        {isEnded && <span className="badge badge-gray">Ended</span>}
+                        {!start && !end && <span style={{ color: 'var(--text3)', fontSize: '0.8rem' }}>Always open</span>}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => {
+                              getQuetions(q.id)
+                              // console.log(q.id)
+                            }}
+                          >
+                            Questions
+                          </button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setAttemptsModal(q)}>Attempts</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setEditQuiz(q)}>Edit</button>
+                          <button className="btn btn-danger btn-sm" onClick={() => deleteQuiz(q.id)} disabled={deleting === q.id}>
+                            {deleting === q.id ? <Spinner sm /> : 'Del'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
+        </div>
       }
 
       {(showCreate || editQuiz) && (

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from app.database import get_db
 from app.models.quiz import Quiz, Question, QuizAttempt
@@ -73,15 +74,24 @@ async def list_quizzes(
 
 
 @router.get("/quizzes/{quiz_id}", response_model=QuizDetail)
-async def get_quiz(quiz_id: int, db: AsyncSession = Depends(get_db), _=Depends(get_admin_user)):
-    result = await db.execute(select(Quiz).where(Quiz.id == quiz_id))
+async def get_quiz(
+    quiz_id: int,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_admin_user)
+):
+    result = await db.execute(
+        select(Quiz)
+        .options(selectinload(Quiz.questions))
+        .where(Quiz.id == quiz_id)
+    )
+
     quiz = result.scalar_one_or_none()
+
     if not quiz:
         raise HTTPException(404, "Quiz not found")
-    q_result = await db.execute(select(Question).where(Question.quiz_id == quiz_id))
-    questions = q_result.scalars().all()
-    quiz.question_count = len(questions)
-    quiz.questions = questions
+
+    quiz.question_count = len(quiz.questions)
+
     return quiz
 
 
