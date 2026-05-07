@@ -4,6 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { Loading, DiffBadge, Spinner } from '../components/Shared'
+import QuestionText from '../components/QuestionText'
 
 const KEYS = ['A', 'B', 'C', 'D']
 
@@ -34,13 +35,13 @@ export default function TakeQuiz() {
   const navigate = useNavigate()
   const toast = useToast()
 
-  const [quiz, setQuiz] = useState(null)
+  const [quiz, setQuiz]       = useState(null)
   const [attempt, setAttempt] = useState(null)
   const [answers, setAnswers] = useState({})
   const [current, setCurrent] = useState(0)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]     = useState('')
 
   useEffect(() => {
     const init = async () => {
@@ -49,7 +50,8 @@ export default function TakeQuiz() {
         const a = await api.startQuiz(token, id)
         setQuiz(q)
         setAttempt(a)
-        if (a.answers) setAnswers(Object.fromEntries(Object.entries(a.answers).map(([k, v]) => [Number(k), v])))
+        if (a.answers)
+          setAnswers(Object.fromEntries(Object.entries(a.answers).map(([k, v]) => [Number(k), v])))
       } catch (e) {
         setError(e.message)
       } finally {
@@ -59,9 +61,7 @@ export default function TakeQuiz() {
     init()
   }, [id])
 
-  const select = (qId, opt) => {
-    setAnswers(a => ({ ...a, [qId]: opt }))
-  }
+  const select = (qId, opt) => setAnswers(a => ({ ...a, [qId]: opt }))
 
   const submit = useCallback(async () => {
     if (submitting) return
@@ -88,9 +88,9 @@ export default function TakeQuiz() {
     </div>
   )
 
-  const q = quiz.questions[current]
+  const q       = quiz.questions[current]
   const answered = Object.keys(answers).length
-  const total = quiz.questions.length
+  const total    = quiz.questions.length
 
   return (
     <div className="page-wrap" style={{ maxWidth: 860 }}>
@@ -118,15 +118,26 @@ export default function TakeQuiz() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: '1.5rem', alignItems: 'start' }}>
-        {/* Question */}
+        {/* Question card */}
         <div className="fade-up-2">
           <div className="card" style={{ marginBottom: '1rem' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text3)', marginBottom: '0.75rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <div style={{
+              fontSize: '0.72rem', color: 'var(--text3)', marginBottom: '0.875rem',
+              fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>
               Q{current + 1}
+              {q.year && (
+                <span style={{ marginLeft: '0.5rem', color: 'var(--accent)', opacity: 0.8 }}>
+                  · {q.year}
+                </span>
+              )}
             </div>
-            <p style={{ fontSize: '1.05rem', lineHeight: 1.7, fontWeight: 500 }}>{q.text}</p>
+
+            {/* ✅ Structured question renderer */}
+            <QuestionText text={q.text} />
           </div>
 
+          {/* Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {q.options.map((opt, i) => (
               <button key={i}
@@ -134,14 +145,16 @@ export default function TakeQuiz() {
                 onClick={() => select(q.id, i)}
               >
                 <span className="option-key">{KEYS[i]}</span>
-                {opt}
+                <span style={{ flex: 1, textAlign: 'left', lineHeight: 1.5 }}>{opt}</span>
               </button>
             ))}
           </div>
 
-          {/* Nav buttons */}
+          {/* Navigation */}
           <div className="flex justify-between" style={{ marginTop: '1.5rem' }}>
-            <button className="btn btn-ghost" onClick={() => setCurrent(c => c - 1)} disabled={current === 0}>← Previous</button>
+            <button className="btn btn-ghost" onClick={() => setCurrent(c => c - 1)} disabled={current === 0}>
+              ← Previous
+            </button>
             {current < total - 1
               ? <button className="btn btn-primary" onClick={() => setCurrent(c => c + 1)}>Next →</button>
               : <button className="btn btn-primary" onClick={submit} disabled={submitting}>
@@ -153,17 +166,16 @@ export default function TakeQuiz() {
 
         {/* Question navigator */}
         <div className="card fade-up-3" style={{ position: 'sticky', top: '1.5rem' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-            Questions
-          </div>
+          <div style={{
+            fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600,
+            letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.75rem',
+          }}>Questions</div>
           <div className="q-nav" style={{ marginBottom: '1rem' }}>
             {quiz.questions.map((qq, i) => (
               <div key={i}
                 className={`q-dot ${i === current ? 'current' : answers[qq.id] !== undefined ? 'answered' : ''}`}
                 onClick={() => setCurrent(i)}
-              >
-                {i + 1}
-              </div>
+              >{i + 1}</div>
             ))}
           </div>
           <div className="divider" />
