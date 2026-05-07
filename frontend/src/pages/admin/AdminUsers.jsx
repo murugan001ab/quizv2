@@ -1,27 +1,25 @@
 import { useEffect, useState } from 'react'
-import { api } from '../../api'
+import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
 import { Loading } from '../../components/Shared'
 
 export default function AdminUsers() {
-  const { token, user: me } = useAuth()
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { user: me } = useAuth()
+  const { adminUsers } = useData()
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    api.adminUsers(token).then(setUsers).catch(console.error).finally(() => setLoading(false))
-  }, [token])
+  useEffect(() => { adminUsers.load() }, [])
 
+  const users     = adminUsers.data ?? []
+  const firstLoad = adminUsers.data === null && adminUsers.loading
+  if (firstLoad) return <Loading />
+
+  const admins  = users.filter(u => u.is_admin).length
+  const regular = users.length - admins
   const filtered = users.filter(u =>
     u.username.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase())
   )
-
-  if (loading) return <Loading />
-
-  const admins = users.filter(u => u.is_admin).length
-  const regular = users.length - admins
 
   return (
     <div className="page-wrap">
@@ -30,7 +28,6 @@ export default function AdminUsers() {
         <p className="page-sub">All registered accounts on the platform</p>
       </div>
 
-      {/* Stats row */}
       <div className="stats-grid fade-up-1" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '2rem' }}>
         <div className="stat-card" style={{ borderLeft: '3px solid var(--blue)' }}>
           <div className="stat-label">Total Users</div>
@@ -49,29 +46,16 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Search */}
       <div className="fade-up-2" style={{ marginBottom: '1.25rem' }}>
-        <input
-          className="input"
-          placeholder="🔍  Search by username or email..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: 400 }}
-        />
+        <input className="input" placeholder="🔍  Search by username or email..."
+          value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 400 }} />
       </div>
 
-      {/* Table */}
       <div className="card fade-up-3" style={{ padding: 0 }}>
         <div className="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th>#</th>
-                <th>User</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Joined</th>
-              </tr>
+              <tr><th>#</th><th>User</th><th>Email</th><th>Role</th><th>Joined</th></tr>
             </thead>
             <tbody>
               {filtered.length === 0
@@ -87,11 +71,8 @@ export default function AdminUsers() {
                           border: `1px solid ${u.is_admin ? 'rgba(251,191,36,0.3)' : 'rgba(110,231,183,0.2)'}`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '0.75rem',
-                          color: u.is_admin ? 'var(--yellow)' : 'var(--accent)',
-                          flexShrink: 0,
-                        }}>
-                          {u.username.charAt(0).toUpperCase()}
-                        </div>
+                          color: u.is_admin ? 'var(--yellow)' : 'var(--accent)', flexShrink: 0,
+                        }}>{u.username.charAt(0).toUpperCase()}</div>
                         <span style={{ fontWeight: 600, color: 'var(--text)' }}>
                           {u.username}
                           {u.id === me?.id && <span style={{ marginLeft: '0.375rem', fontSize: '0.7rem', color: 'var(--accent)', opacity: 0.7 }}>(you)</span>}

@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../../api'
+import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
+import { api } from '../../api'
 import { Loading } from '../../components/Shared'
 
 function StatCard({ label, value, sub, color, icon, delay = 0 }) {
@@ -20,17 +21,15 @@ function StatCard({ label, value, sub, color, icon, delay = 0 }) {
 }
 
 function ActivityRow({ a, i }) {
-  const pct = a.total ? Math.round((a.score / a.total) * 100) : 0
+  const pct   = a.total ? Math.round((a.score / a.total) * 100) : 0
   const color = pct >= 80 ? 'var(--accent)' : pct >= 60 ? 'var(--blue)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)'
   return (
     <div className="fade-up" style={{
       animationDelay: `${i * 0.04}s`,
       display: 'flex', alignItems: 'center', gap: '0.75rem',
       padding: '0.625rem 0.75rem',
-      background: 'var(--bg3)',
-      borderRadius: 'var(--radius-sm)',
-      border: '1px solid var(--border)',
-      fontSize: '0.85rem',
+      background: 'var(--bg3)', borderRadius: 'var(--radius-sm)',
+      border: '1px solid var(--border)', fontSize: '0.85rem',
     }}>
       <div style={{
         width: 32, height: 32, borderRadius: '50%',
@@ -64,54 +63,57 @@ function ActivityRow({ a, i }) {
 }
 
 export default function AdminDashboard() {
-  const { token } = useAuth()
-  const navigate = useNavigate()
-  const [stats, setStats] = useState(null)
-  const [recentAttempts, setRecentAttempts] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { token }   = useAuth()
+  const navigate    = useNavigate()
+  const { adminStats, adminQuizzes } = useData()
+  const [localAttempts, setLocalAttempts] = useState([])
   const intervalRef = useRef(null)
 
-  const loadData = async () => {
-    try {
-      const [s, quizzes] = await Promise.all([
-        api.adminStats(token),
-        api.adminQuizzes(token),
-      ])
-      setStats(s)
-      const attemptResults = await Promise.all(
-        quizzes.slice(0, 5).map(q => api.quizAttempts(token, q.id).catch(() => []))
-      )
-      const flat = attemptResults.flat().sort((a, b) =>
-        new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0)
-      )
-      setRecentAttempts(flat)
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
+  // Load attempts from top-5 quizzes — only once when quizzes first arrive
+  const loadAttempts = async (quizList) => {
+    if (!quizList?.length) return
+    const results = await Promise.all(
+      quizList.slice(0, 5).map(q => api.quizAttempts(token, q.id).catch(() => []))
+    )
+    const flat = results.flat().sort((a, b) =>
+      new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0)
+    )
+    setLocalAttempts(flat)
   }
 
   useEffect(() => {
-    loadData()
-    intervalRef.current = setInterval(loadData, 15000)
-    return () => clearInterval(intervalRef.current)
-  }, [token])
+    adminStats.load()
+    adminQuizzes.load()
+  }, [])
 
-  if (loading) return <Loading />
+  useEffect(() => {
+    if (adminQuizzes.data && localAttempts.length === 0) {
+      loadAttempts(adminQuizzes.data)
+    }
+  }, [adminQuizzes.data])
+
+  // Only refresh lightweight stats counter periodically
+  useEffect(() => {
+    intervalRef.current = setInterval(() => adminStats.refresh(), 20_000)
+    return () => clearInterval(intervalRef.current)
+  }, [])
+
+  const stats     = adminStats.data
+  const firstLoad = adminStats.data === null && adminStats.loading
+  if (firstLoad) return <Loading />
 
   return (
     <div className="page-wrap">
       <div className="page-header fade-up">
         <h1 className="page-title">Admin Dashboard</h1>
-        <p className="page-sub">Platform overview — auto-refreshes every 15 seconds</p>
+        <p className="page-sub">Platform overview — stats refresh every 20 s</p>
       </div>
 
       <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', marginBottom: '2rem' }}>
-        <StatCard label="Total Users" value={stats?.total_users ?? '—'} sub="Registered accounts" icon="👥" color="var(--blue)" delay={0} />
-        <StatCard label="Total Quizzes" value={stats?.total_quizzes ?? '—'} sub="Created quizzes" icon="📋" color="var(--accent)" delay={0.05} />
-        <StatCard label="Live Right Now" value={stats?.live_takers ?? 0} sub="Currently testing" icon="📡" color="var(--yellow)" delay={0.1} />
-        <StatCard label="Total Attempts" value={stats?.total_attempts ?? '—'} sub="All submissions" icon="✅" color="var(--accent2)" delay={0.15} />
+        <StatCard label="Total Users"    value={stats?.total_users    ?? '—'} sub="Registered accounts" icon="👥" color="var(--blue)"    delay={0}    />
+        <StatCard label="Total Quizzes"  value={stats?.total_quizzes  ?? '—'} sub="Created quizzes"     icon="📋" color="var(--accent)"  delay={0.05} />
+        <StatCard label="Live Right Now" value={stats?.live_takers    ?? 0}   sub="Currently testing"   icon="📡" color="var(--yellow)"  delay={0.1}  />
+        <StatCard label="Total Attempts" value={stats?.total_attempts ?? '—'} sub="All submissions"     icon="✅" color="var(--accent2)" delay={0.15} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
@@ -120,21 +122,19 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {[
               { icon: '📋', label: 'Manage Quizzes', sub: 'Create, edit & delete quizzes', to: '/admin/quizzes' },
-              { icon: '👥', label: 'View Users', sub: 'Browse all registered users', to: '/admin/users' },
-              { icon: '📡', label: 'Live Monitor', sub: 'Watch quiz activity in real time', to: '/admin/monitor' },
+              { icon: '👥', label: 'View Users',     sub: 'Browse all registered users',   to: '/admin/users'   },
+              { icon: '📡', label: 'Live Monitor',   sub: 'Watch quiz activity in real time', to: '/admin/monitor' },
             ].map(item => (
               <button key={item.to} onClick={() => navigate(item.to)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.875rem',
-                  padding: '0.875rem 1rem',
-                  background: 'var(--bg3)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.875rem 1rem', background: 'var(--bg3)',
+                  border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
                   cursor: 'pointer', textAlign: 'left', width: '100%',
                   transition: 'all var(--transition)', color: 'var(--text)',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border2)'; e.currentTarget.style.background = 'var(--card2)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg3)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)';  e.currentTarget.style.background = 'var(--bg3)'  }}
               >
                 <span style={{ fontSize: '1.25rem' }}>{item.icon}</span>
                 <div>
@@ -151,9 +151,9 @@ export default function AdminDashboard() {
           <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '1rem', marginBottom: '1.25rem' }}>Platform Status</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {[
-              { label: 'API Server', status: 'Online', ok: true },
-              { label: 'Database', status: 'Connected', ok: true },
-              { label: 'WebSocket', status: 'Active', ok: true },
+              { label: 'API Server',       status: 'Online',    ok: true },
+              { label: 'Database',         status: 'Connected', ok: true },
+              { label: 'WebSocket',        status: 'Active',    ok: true },
               { label: 'Live Test Takers', status: `${stats?.live_takers ?? 0} active`, ok: true },
             ].map(s => (
               <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem' }}>
@@ -175,10 +175,10 @@ export default function AdminDashboard() {
           <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '1rem' }}>Recent Attempts</div>
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/admin/quizzes')}>View Quizzes →</button>
         </div>
-        {recentAttempts.length === 0
+        {localAttempts.length === 0
           ? <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text3)', fontSize: '0.875rem' }}>No recent attempts yet.</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {recentAttempts.slice(0, 8).map((a, i) => <ActivityRow key={a.id || i} a={a} i={i} />)}
+              {localAttempts.slice(0, 8).map((a, i) => <ActivityRow key={a.id || i} a={a} i={i} />)}
             </div>
         }
       </div>

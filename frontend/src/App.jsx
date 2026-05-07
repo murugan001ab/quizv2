@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
+import { DataProvider } from './context/DataContext'
 import Sidebar from './components/Sidebar'
 import { Loading } from './components/Shared'
 
@@ -45,63 +46,47 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <Routes>
-            {/* Public */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+          <DataProvider>
+            <Routes>
+              {/* Public */}
+              <Route path="/login"    element={<Login />} />
+              <Route path="/register" element={<Register />} />
 
-            {/* User routes */}
-            <Route path="/dashboard" element={
-              <RequireAuth>
-                <AppShell><UserDashboard /></AppShell>
-              </RequireAuth>
-            } />
-            <Route path="/quizzes" element={
-              <RequireAuth>
-                <AppShell><Quizzes /></AppShell>
-              </RequireAuth>
-            } />
-            <Route path="/quiz/:id" element={
-              <RequireAuth>
-                <AppShell><TakeQuiz /></AppShell>
-              </RequireAuth>
-            } />
-            <Route path="/results" element={
-              <RequireAuth>
-                <AppShell><Results /></AppShell>
-              </RequireAuth>
-            } />
-            <Route path="/results/:id" element={
-              <RequireAuth>
-                <AppShell><Result /></AppShell>
-              </RequireAuth>
-            } />
+              {/* User routes */}
+              <Route path="/dashboard" element={
+                <RequireAuth><AppShell><UserDashboard /></AppShell></RequireAuth>
+              } />
+              <Route path="/quizzes" element={
+                <RequireAuth><AppShell><Quizzes /></AppShell></RequireAuth>
+              } />
+              <Route path="/quiz/:id" element={
+                <RequireAuth><AppShell><TakeQuiz /></AppShell></RequireAuth>
+              } />
+              <Route path="/results" element={
+                <RequireAuth><AppShell><Results /></AppShell></RequireAuth>
+              } />
+              <Route path="/results/:id" element={
+                <RequireAuth><AppShell><Result /></AppShell></RequireAuth>
+              } />
 
-            {/* Admin routes */}
-            <Route path="/admin" element={
-              <RequireAuth adminOnly >
-                <AppShell><AdminDashboard /></AppShell>
-              </RequireAuth>
-            } />
-            <Route path="/admin/quizzes" element={
-              <RequireAuth adminOnly>
-                <AppShell><AdminQuizzes /></AppShell>
-              </RequireAuth>
-            } />
-            <Route path="/admin/users" element={
-              <RequireAuth adminOnly>
-                <AppShell><AdminUsers /></AppShell>
-              </RequireAuth>
-            } />
-            <Route path="/admin/monitor" element={
-              <RequireAuth adminOnly>
-                <AppShell><AdminMonitor /></AppShell>
-              </RequireAuth>
-            } />
+              {/* Admin routes */}
+              <Route path="/admin" element={
+                <RequireAuth adminOnly><AppShell><AdminDashboard /></AppShell></RequireAuth>
+              } />
+              <Route path="/admin/quizzes" element={
+                <RequireAuth adminOnly><AppShell><AdminQuizzes /></AppShell></RequireAuth>
+              } />
+              <Route path="/admin/users" element={
+                <RequireAuth adminOnly><AppShell><AdminUsers /></AppShell></RequireAuth>
+              } />
+              <Route path="/admin/monitor" element={
+                <RequireAuth adminOnly><AppShell><AdminMonitor /></AppShell></RequireAuth>
+              } />
 
-            {/* Fallback */}
-            <Route path="*" element={<RootRedirect />} />
-          </Routes>
+              {/* Fallback */}
+              <Route path="*" element={<RootRedirect />} />
+            </Routes>
+          </DataProvider>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>

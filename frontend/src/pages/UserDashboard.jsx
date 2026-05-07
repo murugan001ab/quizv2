@@ -1,29 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
+import { useData } from '../context/DataContext'
 import { Loading, QuizCard, EmptyState } from '../components/Shared'
 
 export default function UserDashboard() {
-  const { token, user } = useAuth()
+  const { user } = useAuth()
+  const { userQuizzes, myResults } = useData()
   const navigate = useNavigate()
-  const [quizzes, setQuizzes] = useState([])
-  const [results, setResults] = useState([])
-  const [loading, setLoading] = useState(true)
 
+  // Trigger loads — returns cached data instantly if fresh, fetches in background if stale
   useEffect(() => {
-    Promise.all([api.userQuizzes(token), api.myResults(token)])
-      .then(([q, r]) => { setQuizzes(q); setResults(r) })
-      .finally(() => setLoading(false))
-  }, [token])
+    userQuizzes.load()
+    myResults.load()
+  }, [])
+
+  const quizzes = userQuizzes.data ?? []
+  const results  = myResults.data  ?? []
+  const loading  = (userQuizzes.data === null && userQuizzes.loading) ||
+                   (myResults.data  === null && myResults.loading)
 
   if (loading) return <Loading />
 
   const completed = results.length
-  const avgScore = results.length
+  const avgScore  = results.length
     ? Math.round(results.reduce((a, r) => a + (r.score / r.total) * 100, 0) / results.length)
     : 0
-  const available = quizzes.length
 
   return (
     <div className="page-wrap">
@@ -35,7 +37,7 @@ export default function UserDashboard() {
       <div className="stats-grid fade-up-1">
         <div className="stat-card">
           <div className="stat-label">Available Quizzes</div>
-          <div className="stat-value">{available}</div>
+          <div className="stat-value">{quizzes.length}</div>
           <div className="stat-sub">Ready to take</div>
         </div>
         <div className="stat-card">
@@ -45,7 +47,9 @@ export default function UserDashboard() {
         </div>
         <div className="stat-card">
           <div className="stat-label">Avg. Score</div>
-          <div className="stat-value">{avgScore}<span style={{ fontSize: '1rem', color: 'var(--text3)' }}>%</span></div>
+          <div className="stat-value">
+            {avgScore}<span style={{ fontSize: '1rem', color: 'var(--text3)' }}>%</span>
+          </div>
           <div className="stat-sub">Across all tests</div>
         </div>
       </div>
@@ -58,10 +62,15 @@ export default function UserDashboard() {
         {quizzes.length === 0
           ? <EmptyState icon="📭" title="No quizzes yet" sub="Check back later when tests are added." />
           : <div className="quiz-grid">
-              {quizzes.slice(0, 6).map((q, i) => (
+              {quizzes.slice(0, 6).map(q => (
                 <QuizCard key={q.id} quiz={q}
                   onClick={() => navigate(`/quiz/${q.id}`)}
-                  actions={<button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); navigate(`/quiz/${q.id}`) }}>Take Test →</button>}
+                  actions={
+                    <button className="btn btn-primary btn-sm"
+                      onClick={e => { e.stopPropagation(); navigate(`/quiz/${q.id}`) }}>
+                      Take Test →
+                    </button>
+                  }
                 />
               ))}
             </div>

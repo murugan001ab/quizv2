@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { useData } from '../context/DataContext'
 import { Loading, DiffBadge, Spinner } from '../components/Shared'
 import QuestionText from '../components/QuestionText'
 
@@ -11,43 +12,39 @@ const KEYS = ['A', 'B', 'C', 'D']
 function Timer({ end, onExpire }) {
   const calc = () => Math.max(0, Math.floor((new Date(end) - Date.now()) / 1000))
   const [secs, setSecs] = useState(calc)
-
   useEffect(() => {
     if (!end) return
-    const t = setInterval(() => {
-      const s = calc()
-      setSecs(s)
-      if (s <= 0) { clearInterval(t); onExpire() }
-    }, 1000)
+    const t = setInterval(() => { const s = calc(); setSecs(s); if (s <= 0) { clearInterval(t); onExpire() } }, 1000)
     return () => clearInterval(t)
   }, [end])
-
   if (!end) return null
   const m = String(Math.floor(secs / 60)).padStart(2, '0')
   const s = String(secs % 60).padStart(2, '0')
-  const cls = secs < 60 ? 'danger' : secs < 300 ? 'warning' : ''
-  return <div className={`timer ${cls}`}>⏱ {m}:{s}</div>
+  return <div className={`timer ${secs < 60 ? 'danger' : secs < 300 ? 'warning' : ''}`}>⏱ {m}:{s}</div>
 }
 
 export default function TakeQuiz() {
-  const { id } = useParams()
+  const { id }    = useParams()
   const { token } = useAuth()
-  const navigate = useNavigate()
-  const toast = useToast()
+  const navigate  = useNavigate()
+  const toast     = useToast()
+  const { myResults } = useData()   // ← to invalidate cache after submit
 
-  const [quiz, setQuiz]       = useState(null)
-  const [attempt, setAttempt] = useState(null)
-  const [answers, setAnswers] = useState({})
-  const [current, setCurrent] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [quiz,       setQuiz]       = useState(null)
+  const [attempt,    setAttempt]    = useState(null)
+  const [answers,    setAnswers]    = useState({})
+  const [current,    setCurrent]    = useState(0)
+  const [loading,    setLoading]    = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError]     = useState('')
+  const [error,      setError]      = useState('')
 
   useEffect(() => {
     const init = async () => {
       try {
-        const q = await api.userQuiz(token, id)
-        const a = await api.startQuiz(token, id)
+        const [q, a] = await Promise.all([
+          api.userQuiz(token, id),
+          api.startQuiz(token, id),
+        ])
         setQuiz(q)
         setAttempt(a)
         if (a.answers)
@@ -68,6 +65,8 @@ export default function TakeQuiz() {
     setSubmitting(true)
     try {
       await api.submitQuiz(token, attempt.id, answers)
+      // Invalidate results cache so Results page shows new entry immediately
+      myResults.refresh()
       toast('Quiz submitted! 🎉', 'success')
       navigate(`/results/${attempt.id}`)
     } catch (e) {
@@ -88,13 +87,12 @@ export default function TakeQuiz() {
     </div>
   )
 
-  const q       = quiz.questions[current]
+  const q        = quiz.questions[current]
   const answered = Object.keys(answers).length
   const total    = quiz.questions.length
 
   return (
     <div className="page-wrap" style={{ maxWidth: 860 }}>
-      {/* Header */}
       <div className="flex justify-between items-center fade-up" style={{ marginBottom: '1.5rem' }}>
         <div>
           <div className="flex items-center gap-1" style={{ marginBottom: '0.25rem' }}>
@@ -106,7 +104,6 @@ export default function TakeQuiz() {
         <Timer end={quiz.scheduled_end} onExpire={submit} />
       </div>
 
-      {/* Progress */}
       <div className="fade-up-1" style={{ marginBottom: '1.5rem' }}>
         <div className="flex justify-between items-center" style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: 'var(--text3)' }}>
           <span>Question {current + 1} of {total}</span>
@@ -118,43 +115,24 @@ export default function TakeQuiz() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: '1.5rem', alignItems: 'start' }}>
-        {/* Question card */}
         <div className="fade-up-2">
           <div className="card" style={{ marginBottom: '1rem' }}>
-            <div style={{
-              fontSize: '0.72rem', color: 'var(--text3)', marginBottom: '0.875rem',
-              fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
-            }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text3)', marginBottom: '0.875rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
               Q{current + 1}
-              {q.year && (
-                <span style={{ marginLeft: '0.5rem', color: 'var(--accent)', opacity: 0.8 }}>
-                  · {q.year}
-                </span>
-              )}
+              {q.year && <span style={{ marginLeft: '0.5rem', color: 'var(--accent)', opacity: 0.8 }}>· {q.year}</span>}
             </div>
-
-            {/* ✅ Structured question renderer */}
             <QuestionText text={q.text} />
           </div>
-
-          {/* Options */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {q.options.map((opt, i) => (
-              <button key={i}
-                className={`option-btn ${answers[q.id] === i ? 'selected' : ''}`}
-                onClick={() => select(q.id, i)}
-              >
+              <button key={i} className={`option-btn ${answers[q.id] === i ? 'selected' : ''}`} onClick={() => select(q.id, i)}>
                 <span className="option-key">{KEYS[i]}</span>
                 <span style={{ flex: 1, textAlign: 'left', lineHeight: 1.5 }}>{opt}</span>
               </button>
             ))}
           </div>
-
-          {/* Navigation */}
           <div className="flex justify-between" style={{ marginTop: '1.5rem' }}>
-            <button className="btn btn-ghost" onClick={() => setCurrent(c => c - 1)} disabled={current === 0}>
-              ← Previous
-            </button>
+            <button className="btn btn-ghost" onClick={() => setCurrent(c => c - 1)} disabled={current === 0}>← Previous</button>
             {current < total - 1
               ? <button className="btn btn-primary" onClick={() => setCurrent(c => c + 1)}>Next →</button>
               : <button className="btn btn-primary" onClick={submit} disabled={submitting}>
@@ -164,18 +142,11 @@ export default function TakeQuiz() {
           </div>
         </div>
 
-        {/* Question navigator */}
         <div className="card fade-up-3" style={{ position: 'sticky', top: '1.5rem' }}>
-          <div style={{
-            fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600,
-            letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.75rem',
-          }}>Questions</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Questions</div>
           <div className="q-nav" style={{ marginBottom: '1rem' }}>
             {quiz.questions.map((qq, i) => (
-              <div key={i}
-                className={`q-dot ${i === current ? 'current' : answers[qq.id] !== undefined ? 'answered' : ''}`}
-                onClick={() => setCurrent(i)}
-              >{i + 1}</div>
+              <div key={i} className={`q-dot ${i === current ? 'current' : answers[qq.id] !== undefined ? 'answered' : ''}`} onClick={() => setCurrent(i)}>{i + 1}</div>
             ))}
           </div>
           <div className="divider" />

@@ -1,30 +1,30 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../api'
-import { useAuth } from '../context/AuthContext'
+import { useData } from '../context/DataContext'
 import { Loading, QuizCard, EmptyState } from '../components/Shared'
 
-const SUBJECTS = ['All', 'Tamil', 'Science', 'Physics', 'Maths', 'Biology', 'Chemistry']
-const DIFFS = ['All', 'easy', 'medium', 'hard']
+const SUBJECTS = ['All', 'Tamil', 'Science', 'Physics', 'Maths', 'Biology', 'Chemistry', 'History', 'English']
+const DIFFS    = ['All', 'easy', 'medium', 'hard']
 
 export default function Quizzes() {
-  const { token } = useAuth()
+  const { userQuizzes } = useData()
   const navigate = useNavigate()
-  const [quizzes, setQuizzes] = useState([])
-  const [loading, setLoading] = useState(true)
   const [subject, setSubject] = useState('All')
-  const [diff, setDiff] = useState('All')
+  const [diff,    setDiff]    = useState('All')
 
-  const load = () => {
-    setLoading(true)
-    const params = new URLSearchParams()
-    if (diff !== 'All') params.set('difficulty', diff)
-    if (subject !== 'All') params.set('subject', subject)
-    const q = params.toString() ? `?${params}` : ''
-    api.userQuizzes(token, q).then(setQuizzes).finally(() => setLoading(false))
-  }
+  // Load once — cache handles dedup
+  useEffect(() => { userQuizzes.load() }, [])
 
-  useEffect(load, [diff, subject])
+  // Filter client-side — no extra API calls on filter change
+  const filtered = useMemo(() => {
+    const all = userQuizzes.data ?? []
+    return all.filter(q =>
+      (subject === 'All' || q.subject === subject) &&
+      (diff    === 'All' || q.difficulty === diff)
+    )
+  }, [userQuizzes.data, subject, diff])
+
+  const firstLoad = userQuizzes.data === null && userQuizzes.loading
 
   return (
     <div className="page-wrap">
@@ -48,13 +48,18 @@ export default function Quizzes() {
         </div>
       </div>
 
-      {loading ? <Loading /> : quizzes.length === 0
+      {firstLoad ? <Loading /> : filtered.length === 0
         ? <EmptyState icon="🔍" title="No quizzes found" sub="Try a different filter." />
         : <div className="quiz-grid fade-up-2">
-            {quizzes.map(q => (
+            {filtered.map(q => (
               <QuizCard key={q.id} quiz={q}
                 onClick={() => navigate(`/quiz/${q.id}`)}
-                actions={<button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); navigate(`/quiz/${q.id}`) }}>Take Test →</button>}
+                actions={
+                  <button className="btn btn-primary btn-sm"
+                    onClick={e => { e.stopPropagation(); navigate(`/quiz/${q.id}`) }}>
+                    Take Test →
+                  </button>
+                }
               />
             ))}
           </div>
