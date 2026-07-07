@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from app.database import get_db
-from app.models.quiz import Quiz, Question, QuizAttempt
+from app.models.quiz import Quiz, Question, QuizAttempt, now_ist_naive
 from app.models.user import User
 from app.schemas.quiz import (
     QuizCreate, QuizUpdate, QuizOut, QuizDetail,
@@ -29,8 +29,18 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db), _=Depends(get_admi
     total_users = (await db.execute(select(func.count(User.id)))).scalar()
     total_quizzes = (await db.execute(select(func.count(Quiz.id)))).scalar()
     total_attempts = (await db.execute(select(func.count(QuizAttempt.id)))).scalar()
+    # "Live" = started but not submitted, AND the quiz hasn't ended.
+    # Without the quiz-end check, an attempt abandoned mid-quiz (tab closed,
+    # browser crash, etc.) stays "submitted=False" forever and would
+    # permanently inflate this count.
+    now = now_ist_naive()
     active_attempts = (await db.execute(
-        select(func.count(QuizAttempt.id)).where(QuizAttempt.submitted == False)
+        select(func.count(QuizAttempt.id))
+        .join(Quiz, Quiz.id == QuizAttempt.quiz_id)
+        .where(
+            QuizAttempt.submitted == False,
+            or_(Quiz.scheduled_end.is_(None), Quiz.scheduled_end >= now),
+        )
     )).scalar()
     return {
         "total_users": total_users,
@@ -38,6 +48,41 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db), _=Depends(get_admi
         "total_attempts": total_attempts,
         "live_takers": active_attempts,
     }
+
+
+@router.get("/live", response_model=List[AttemptOut])
+async def live_attempts(db: AsyncSession = Depends(get_db), _=Depends(get_admin_user)):
+    """Currently in-progress attempts (started, not yet submitted, quiz not
+    ended). Lets the Live Monitor show who's attending right now on load /
+    reconnect, instead of only reacting to events broadcast during the
+    current browser session."""
+    now = now_ist_naive()
+    result = await db.execute(
+        select(QuizAttempt)
+        .join(Quiz, Quiz.id == QuizAttempt.quiz_id)
+        .where(
+            QuizAttempt.submitted == False,
+            or_(Quiz.scheduled_end.is_(None), Quiz.scheduled_end >= now),
+        )
+        .order_by(QuizAttempt.started_at.desc())
+    )
+    attempts = result.scalars().all()
+
+    enriched = []
+    for a in attempts:
+        quiz_r = await db.execute(select(Quiz).where(Quiz.id == a.quiz_id))
+        quiz = quiz_r.scalar_one_or_none()
+        user_r = await db.execute(select(User).where(User.id == a.user_id))
+        user = user_r.scalar_one_or_none()
+        enriched.append(AttemptOut(
+            id=a.id, quiz_id=a.quiz_id, user_id=a.user_id,
+            score=a.score, total=a.total, submitted=a.submitted,
+            started_at=a.started_at, submitted_at=a.submitted_at,
+            quiz_title=quiz.title if quiz else None,
+            difficulty=quiz.difficulty.value if quiz else None,
+            username=user.username if user else None,
+        ))
+    return enriched
 
 
 # ── Quiz CRUD ─────────────────────────────────────────────

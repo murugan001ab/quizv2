@@ -163,7 +163,9 @@ async def submit_quiz(
 
     quiz_r = await db.execute(select(Quiz).where(Quiz.id == attempt.quiz_id))
     quiz = quiz_r.scalar_one_or_none()
-    q_result = await db.execute(select(Question).where(Question.quiz_id == attempt.quiz_id))
+    q_result = await db.execute(
+        select(Question).where(Question.quiz_id == attempt.quiz_id).order_by(Question.id)
+    )
     questions = q_result.scalars().all()
 
     score = sum(1 for q in questions if data.answers.get(q.id) == q.correct_option)
@@ -235,7 +237,9 @@ async def result_detail(
 
     quiz_r = await db.execute(select(Quiz).where(Quiz.id == attempt.quiz_id))
     quiz = quiz_r.scalar_one_or_none()
-    q_result = await db.execute(select(Question).where(Question.quiz_id == attempt.quiz_id))
+    q_result = await db.execute(
+        select(Question).where(Question.quiz_id == attempt.quiz_id).order_by(Question.id)
+    )
     questions = q_result.scalars().all()
 
     return AttemptResult(

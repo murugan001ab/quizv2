@@ -1,21 +1,25 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { api } from '../../api'
 
 const MAX_EVENTS = 50
 
-// Derive live count from event list: started - submitted (per attempt_id)
-function calcLiveCount(events) {
-  const started = new Set()
-  const submitted = new Set()
-  for (const ev of events) {
-    if (ev.type === 'quiz_started') started.add(ev.attempt_id)
-    if (ev.type === 'quiz_submitted') submitted.add(ev.attempt_id)
+// Build the WebSocket URL for /ws/admin.
+// Bug fix: this used to be hardcoded to the production domain
+// (wss://quiz.mpcashews.in/...), which meant it never worked against a
+// local/dev backend (Vite's /ws proxy was configured but ignored) and
+// would silently break again on any other deployment domain.
+// VITE_API_URL (same env var used for REST calls) is reused here so ws/http
+// always point at the same backend; falling back to same-origin lets the
+// Vite dev proxy (see vite.config.js) do its job.
+function buildAdminWsUrl(token) {
+  const apiBase = import.meta.env.VITE_API_URL || ''
+  if (apiBase) {
+    const wsBase = apiBase.replace(/^http/, 'ws').replace(/\/$/, '')
+    return `${wsBase}/ws/admin?token=${token}`
   }
-  let count = 0
-  for (const id of started) {
-    if (!submitted.has(id)) count++
-  }
-  return count
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  return `${proto}://${window.location.host}/ws/admin?token=${token}`
 }
 
 function EventCard({ ev, i }) {
@@ -104,10 +108,21 @@ export default function AdminMonitor() {
   const [events, setEvents]       = useState([])
   const [connected, setConnected] = useState(false)
   const [statusMsg, setStatusMsg] = useState('Connecting…')
+  // Attempts currently in progress. Seeded from GET /admin/live on mount so
+  // the count is correct immediately — not just events seen since this tab
+  // connected — then kept up to date from WS events as they arrive.
+  const [liveIds, setLiveIds] = useState(() => new Set())
   const wsRef      = useRef(null)
   const reconnectRef = useRef(null)
 
-  const liveCount = calcLiveCount(events)
+  const liveCount = liveIds.size
+
+  // Hydrate current live state on mount (and refresh alongside reconnects)
+  useEffect(() => {
+    api.adminLive(token)
+      .then(attempts => setLiveIds(new Set(attempts.map(a => a.id))))
+      .catch(() => {})
+  }, [token])
 
   const connect = useCallback(() => {
     // Clear any pending reconnect timer
@@ -120,9 +135,7 @@ export default function AdminMonitor() {
       wsRef.current.close()
     }
 
-    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    // Dev: Vite proxies /ws → localhost:8000, so use same host
-    const url = `wss://quiz.mpcashews.in/ws/admin?token=${token}`
+    const url = buildAdminWsUrl(token)
     const ws = new WebSocket(url)
     wsRef.current = ws
 
@@ -145,6 +158,16 @@ export default function AdminMonitor() {
       if (!ev.ts) ev.ts = new Date().toISOString()
 
       setEvents(prev => [ev, ...prev].slice(0, MAX_EVENTS))
+
+      // Keep the live set in sync with real-time events too, so someone
+      // starting/submitting mid-session updates the count immediately
+      // without waiting for the next /admin/live poll.
+      setLiveIds(prev => {
+        const next = new Set(prev)
+        if (ev.type === 'quiz_started') next.add(ev.attempt_id)
+        if (ev.type === 'quiz_submitted') next.delete(ev.attempt_id)
+        return next
+      })
     }
 
     ws.onclose = () => {

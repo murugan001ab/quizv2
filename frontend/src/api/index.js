@@ -42,6 +42,7 @@ export const api = {
   updateQuestion: (token, qId, data) => req('PUT', `/admin/questions/${qId}`, data, token),
   deleteQuestion: (token, qId) => req('DELETE', `/admin/questions/${qId}`, null, token),
   quizAttempts: (token, quizId) => req('GET', `/admin/quizzes/${quizId}/attempts`, null, token),
+  adminLive: (token) => req('GET', '/admin/live', null, token),
 
   // User
   userQuizzes: (token, params = '') => req('GET', `/user/quizzes${params}`, null, token),

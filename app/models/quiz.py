@@ -35,7 +35,7 @@ class Quiz(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=now_ist_naive)
 
-    questions = relationship("Question", back_populates="quiz", cascade="all, delete-orphan")
+    questions = relationship("Question", back_populates="quiz", cascade="all, delete-orphan", order_by="Question.id")
     attempts = relationship("QuizAttempt", back_populates="quiz")
 
 
