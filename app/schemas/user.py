@@ -19,10 +19,16 @@ class UserOut(BaseModel):
     username: str
     email: str
     is_admin: bool
+    profile_url: Optional[str] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
 
 
 class Token(BaseModel):

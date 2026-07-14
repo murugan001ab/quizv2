@@ -33,8 +33,15 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  // Merge partial fields into the current user — used after actions like
+  // uploading a new profile picture, where the server hands back the full
+  // updated user object.
+  const updateUser = (partial) => {
+    setUser(prev => prev ? { ...prev, ...partial } : prev)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   )

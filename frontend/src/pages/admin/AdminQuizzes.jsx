@@ -7,7 +7,8 @@ import { Loading, DiffBadge, Modal, Spinner } from '../../components/Shared'
 const DIFFS = ['easy', 'medium', 'hard']
 const SUBJECTS = ['Tamil', 'Science', 'Physics', 'Maths', 'Biology', 'Chemistry', 'History', 'English']
 const KEYS = ['A', 'B', 'C', 'D']
-const emptyQuiz = { title: '', description: '', subject: 'Maths', topic: '', difficulty: 'medium', scheduled_start: '', scheduled_end: '' }
+const QUIZ_TYPES = ['scheduled', 'live']
+const emptyQuiz = { title: '', description: '', subject: 'Maths', topic: '', difficulty: 'medium', quiz_type: 'scheduled', scheduled_start: '', scheduled_end: '' }
 
 // ── Attempts modal ───────────────────────────────────────────────────────────
 function AttemptsModal({ quizId, quizTitle, token, onClose }) {
@@ -209,6 +210,7 @@ function QuizFormModal({ editQuiz, token, toast, onClose, onSaved }) {
   const [form, setForm] = useState(editQuiz ? {
     title: editQuiz.title, description: editQuiz.description || '',
     subject: editQuiz.subject, topic: editQuiz.topic || '', difficulty: editQuiz.difficulty,
+    quiz_type: editQuiz.quiz_type || 'scheduled',
     scheduled_start: editQuiz.scheduled_start ? editQuiz.scheduled_start.slice(0, 16) : '',
     scheduled_end: editQuiz.scheduled_end ? editQuiz.scheduled_end.slice(0, 16) : '',
   } : { ...emptyQuiz })
@@ -257,6 +259,12 @@ function QuizFormModal({ editQuiz, token, toast, onClose, onSaved }) {
             </select>
           </div>
         </div>
+        <div className="input-group">
+          <label className="input-label">Type</label>
+          <select className="input" value={form.quiz_type} onChange={f('quiz_type')}>
+            {QUIZ_TYPES.map(t => <option key={t} value={t}>{t === 'live' ? 'Live (hosted only — hidden from users)' : 'Scheduled (self-paced, shown to users)'}</option>)}
+          </select>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div className="input-group">
             <label className="input-label">Scheduled Start</label>
@@ -286,6 +294,7 @@ export default function AdminQuizzes() {
   const [loading, setLoading] = useState(true)
   const [filterDiff, setFilterDiff] = useState('All')
   const [filterSubject, setFilterSubject] = useState('All')
+  const [filterType, setFilterType] = useState('All')
   const [showCreate, setShowCreate] = useState(false)
   const [editQuiz, setEditQuiz] = useState(null)
   const [attemptsModal, setAttemptsModal] = useState(null)
@@ -305,6 +314,10 @@ export default function AdminQuizzes() {
       params.set('subject', filterSubject)
     }
 
+    if (filterType !== 'All') {
+      params.set('quiz_type', filterType)
+    }
+
     const q = params.toString() ? `?${params}` : ''
 
     try {
@@ -318,7 +331,7 @@ export default function AdminQuizzes() {
       setLoading(false)
     }
   }
-  useEffect(() => { load() }, [filterDiff, filterSubject])
+  useEffect(() => { load() }, [filterDiff, filterSubject, filterType])
 
  const getQuetions = async (id) => {
   try {
@@ -372,6 +385,12 @@ export default function AdminQuizzes() {
             {['All', ...DIFFS].map(d => <option key={d}>{d}</option>)}
           </select>
         </div>
+        <div className="input-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
+          <label className="input-label" style={{ whiteSpace: 'nowrap' }}>Type</label>
+          <select className="input" value={filterType} onChange={e => setFilterType(e.target.value)} style={{ width: 'auto' }}>
+            {['All', ...QUIZ_TYPES].map(t => <option key={t}>{t}</option>)}
+          </select>
+        </div>
       </div>
 
       {loading ? <Loading /> : quizzes.length === 0
@@ -386,7 +405,7 @@ export default function AdminQuizzes() {
             <table>
               <thead>
                 <tr>
-                  <th>Title</th><th>Subject / Topic</th><th>Difficulty</th>
+                  <th>Title</th><th>Subject / Topic</th><th>Difficulty</th><th>Type</th>
                   <th>Questions</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
@@ -410,6 +429,11 @@ export default function AdminQuizzes() {
                         {q.topic && <div style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>{q.topic}</div>}
                       </td>
                       <td><DiffBadge level={q.difficulty} /></td>
+                      <td>
+                        <span className={`badge ${q.quiz_type === 'live' ? 'badge-blue' : 'badge-gray'}`}>
+                          {q.quiz_type === 'live' ? '📡 Live' : 'Scheduled'}
+                        </span>
+                      </td>
                       <td>
                         <span style={{ fontFamily: 'var(--font-head)', fontWeight: 700 }}>{q.question_count ?? 0}</span>
                         <span style={{ color: 'var(--text3)', fontSize: '0.8rem' }}> Qs</span>

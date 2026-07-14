@@ -15,7 +15,7 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey_change_in_production")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 1 month
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 

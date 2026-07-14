@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -33,3 +34,12 @@ async def init_db():
     async with engine.begin() as conn:
         from app.models import user, quiz  # noqa: registers models with Base
         await conn.run_sync(Base.metadata.create_all)
+        # create_all only creates missing tables — it never ALTERs a table
+        # that's already there. quiz_type was added after quizzes already
+        # existed in deployed DBs, so patch it in here for anyone upgrading.
+        await conn.execute(text(
+            "ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS quiz_type VARCHAR NOT NULL DEFAULT 'scheduled'"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_url VARCHAR"
+        ))

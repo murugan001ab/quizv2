@@ -15,6 +15,7 @@ dependencies = [
     "asyncpg",
     "websockets",
     "python-dotenv",
+    "imagekitio",
 ]
 
 [build-system]

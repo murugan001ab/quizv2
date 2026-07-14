@@ -7,6 +7,7 @@ import { Loading } from './components/Shared'
 
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Account from './pages/Account'
 import UserDashboard from './pages/UserDashboard'
 import Quizzes from './pages/Quizzes'
 import TakeQuiz from './pages/TakeQuiz'
@@ -16,6 +17,8 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminQuizzes from './pages/admin/AdminQuizzes'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminMonitor from './pages/admin/AdminMonitor'
+import AdminLive from './pages/admin/AdminLive'
+import LiveQuiz from './pages/LiveQuiz'
 
 function AppShell({ children }) {
   return (
@@ -50,7 +53,7 @@ export default function App() {
             <Routes>
               {/* Public */}
               <Route path="/login"    element={<Login />} />
-              <Route path="/register" element={<Register />} />
+              {/* <Route path="/register" element={<Register />} /> */}
 
               {/* User routes */}
               <Route path="/dashboard" element={
@@ -68,6 +71,12 @@ export default function App() {
               <Route path="/results/:id" element={
                 <RequireAuth><AppShell><Result /></AppShell></RequireAuth>
               } />
+              <Route path="/live" element={
+                <RequireAuth><AppShell><LiveQuiz /></AppShell></RequireAuth>
+              } />
+              <Route path="/account" element={
+                <RequireAuth><AppShell><Account /></AppShell></RequireAuth>
+              } />
 
               {/* Admin routes */}
               <Route path="/admin" element={
@@ -79,8 +88,11 @@ export default function App() {
               <Route path="/admin/users" element={
                 <RequireAuth adminOnly><AppShell><AdminUsers /></AppShell></RequireAuth>
               } />
-              <Route path="/admin/monitor" element={
+              {/* <Route path="/admin/monitor" element={
                 <RequireAuth adminOnly><AppShell><AdminMonitor /></AppShell></RequireAuth>
+              } /> */}
+              <Route path="/admin/live" element={
+                <RequireAuth adminOnly><AppShell><AdminLive /></AppShell></RequireAuth>
               } />
 
               {/* Fallback */}

@@ -4,7 +4,7 @@ from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from app.database import get_db
-from app.models.quiz import Quiz, Question, QuizAttempt, now_ist_naive
+from app.models.quiz import Quiz, Question, QuizAttempt, now_ist
 from app.models.user import User
 from app.schemas.quiz import (
     QuizCreate, QuizUpdate, QuizOut, QuizDetail,
@@ -33,7 +33,7 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db), _=Depends(get_admi
     # Without the quiz-end check, an attempt abandoned mid-quiz (tab closed,
     # browser crash, etc.) stays "submitted=False" forever and would
     # permanently inflate this count.
-    now = now_ist_naive()
+    now = now_ist()
     active_attempts = (await db.execute(
         select(func.count(QuizAttempt.id))
         .join(Quiz, Quiz.id == QuizAttempt.quiz_id)
@@ -56,7 +56,7 @@ async def live_attempts(db: AsyncSession = Depends(get_db), _=Depends(get_admin_
     ended). Lets the Live Monitor show who's attending right now on load /
     reconnect, instead of only reacting to events broadcast during the
     current browser session."""
-    now = now_ist_naive()
+    now = now_ist()
     result = await db.execute(
         select(QuizAttempt)
         .join(Quiz, Quiz.id == QuizAttempt.quiz_id)
@@ -100,6 +100,7 @@ async def create_quiz(data: QuizCreate, db: AsyncSession = Depends(get_db), _=De
 async def list_quizzes(
     difficulty: Optional[str] = None,
     subject: Optional[str] = None,
+    quiz_type: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     _=Depends(get_admin_user)
 ):
@@ -108,6 +109,8 @@ async def list_quizzes(
         q = q.where(Quiz.difficulty == difficulty)
     if subject:
         q = q.where(Quiz.subject == subject)
+    if quiz_type:
+        q = q.where(Quiz.quiz_type == quiz_type)
     result = await db.execute(q)
     quizzes = result.scalars().all()
     for quiz in quizzes:

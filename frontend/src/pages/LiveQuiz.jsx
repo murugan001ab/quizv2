@@ -1,0 +1,334 @@
+import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
+import { useLiveSocket } from '../hooks/useLiveSocket'
+
+const KEYS = ['A', 'B', 'C', 'D']
+
+// ── Resume-on-accidental-exit ───────────────────────────────────────────────
+// If the tab/browser closes mid-quiz (accidental exit) but the user is still
+// logged in (their auth token is still valid), we remember which channel they
+// were in so we can offer a one-tap "Resume" instead of making them retype
+// the channel code/password from scratch. The server already supports
+// reconnecting mid-session (see live_ws "Resume mid-session" handling), so
+// this is purely a client-side convenience on top of that.
+const STORAGE_PREFIX = 'liveQuiz:lastChannel:'
+
+function loadStoredChannel(userId) {
+  if (!userId) return null
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + userId)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+function saveStoredChannel(userId, data) {
+  if (!userId) return
+  try {
+    localStorage.setItem(STORAGE_PREFIX + userId, JSON.stringify(data))
+  } catch {
+    /* ignore quota/serialization errors */
+  }
+}
+
+function clearStoredChannel(userId) {
+  if (!userId) return
+  try {
+    localStorage.removeItem(STORAGE_PREFIX + userId)
+  } catch {
+    /* ignore */
+  }
+}
+
+function ResumeCard({ channelName, onResume, onJoinDifferent, resuming }) {
+  return (
+    <div className="card fade-up" style={{ maxWidth: 420, margin: '2rem auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+            You were in a live quiz
+          </div>
+          <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 700 }}>
+            {channelName || 'Live quiz'}
+          </h2>
+          <div style={{ color: 'var(--text3)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+            Looks like you got disconnected. You're still logged in, so you can jump right back in.
+          </div>
+        </div>
+        <button className="btn btn-primary w-full" onClick={onResume} disabled={resuming}>
+          {resuming ? 'Resuming…' : 'Resume live quiz'}
+        </button>
+        <button className="btn btn-ghost w-full" onClick={onJoinDifferent}>
+          Join a different channel instead
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function JoinForm({ onJoin }) {
+  const [code, setCode] = useState('')
+  const [password, setPassword] = useState('')
+
+  return (
+    <div className="card fade-up" style={{ maxWidth: 420, margin: '2rem auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="input-group">
+          <label className="input-label">Channel code</label>
+          <input
+            className="input"
+            value={code}
+            onChange={e => setCode(e.target.value.toUpperCase())}
+            placeholder="e.g. 7F3K2Q"
+            style={{ letterSpacing: '0.1em', fontFamily: 'var(--font-head)', fontWeight: 700 }}
+          />
+        </div>
+        <div className="input-group">
+          <label className="input-label">Password (if the host set one)</label>
+          <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} />
+        </div>
+        <button className="btn btn-primary w-full" disabled={!code} onClick={() => onJoin(code, password)}>
+          Join live quiz
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function WaitingRoom({ channelInfo, users }) {
+  return (
+    <div className="card fade-up" style={{ maxWidth: 480, margin: '2rem auto' }}>
+      <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 700, marginBottom: '0.25rem' }}>{channelInfo.name}</h2>
+      <div style={{ color: 'var(--text3)', fontSize: '0.875rem', marginBottom: '1.25rem' }}>{channelInfo.quiz_title}</div>
+      <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+        Connected ({users.length})
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginBottom: '1.25rem' }}>
+        {users.map(u => (
+          <div key={u.user_id} style={{
+            display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0.75rem',
+            background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6,
+          }}>
+            <span>{u.username}</span>
+            {u.is_admin && <span style={{ color: 'var(--accent)', fontSize: '0.72rem' }}>host</span>}
+          </div>
+        ))}
+      </div>
+      <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: '0.875rem' }}>
+        Waiting for the host to start the quiz…
+      </div>
+    </div>
+  )
+}
+
+function LiveQuestionCard({ question, locked, onAnswer }) {
+  const [selected, setSelected] = useState(null)
+  const [timeLeft, setTimeLeft] = useState(question.time_limit)
+
+  useEffect(() => {
+    setSelected(null)
+    setTimeLeft(question.time_limit)
+    const t = setInterval(() => setTimeLeft(s => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(t)
+  }, [question.id])
+
+  const pick = (i) => {
+    if (selected !== null || locked) return
+    setSelected(i)
+    onAnswer(question.index, i)
+  }
+
+  return (
+    <div className="card fade-up" style={{ maxWidth: 640, margin: '0 auto' }}>
+      <div className="flex justify-between items-center" style={{ marginBottom: '0.75rem', fontSize: '0.8rem', color: 'var(--text3)' }}>
+        <span>Question {question.index + 1} of {question.total}</span>
+        <span className={timeLeft <= 5 ? 'timer danger' : 'timer'}>⏱ {timeLeft}s</span>
+      </div>
+      <p style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '1rem' }}>{question.text}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+        {question.options.map((opt, i) => (
+          <button
+            key={i}
+            className={`option-btn ${selected === i ? 'selected' : ''}`}
+            onClick={() => pick(i)}
+            disabled={selected !== null || locked}
+          >
+            <span className="option-key">{KEYS[i]}</span>
+            <span style={{ flex: 1, textAlign: 'left' }}>{opt}</span>
+          </button>
+        ))}
+      </div>
+      {locked && (
+        <div style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text3)' }}>
+          Answers locked — the correct answer will be revealed in the review after the quiz.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ExplainCard({ q, isAdmin, onPrev, onNext }) {
+  const total = q.counts.reduce((a, b) => a + b, 0)
+  return (
+    <div className="card fade-up" style={{ maxWidth: 640, margin: '0 auto' }}>
+      <div className="flex justify-between items-center" style={{ marginBottom: '0.75rem', fontSize: '0.8rem', color: 'var(--text3)' }}>
+        <span>Review · Question {q.index + 1} of {q.total}</span>
+      </div>
+      <p style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '1rem' }}>{q.text}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+        {q.options.map((opt, i) => {
+          const count = q.counts[i] || 0
+          const pct = total ? Math.round((count / total) * 100) : 0
+          const isCorrect = i === q.correct_option
+          return (
+            <div key={i} className="option-btn" style={{
+              position: 'relative', overflow: 'hidden', cursor: 'default',
+              background: isCorrect ? 'rgba(52,211,153,0.1)' : 'var(--bg3)',
+              borderColor: isCorrect ? 'rgba(52,211,153,0.4)' : 'var(--border)',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0, width: `${pct}%`,
+                background: isCorrect ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.04)', zIndex: 0,
+              }} />
+              <span className="option-key" style={{ position: 'relative' }}>{KEYS[i]}</span>
+              <span style={{ flex: 1, textAlign: 'left', position: 'relative' }}>{opt}</span>
+              <span style={{ position: 'relative', fontFamily: 'var(--font-head)', fontWeight: 700 }}>{count} · {pct}%</span>
+            </div>
+          )
+        })}
+      </div>
+      {q.explanation && (
+        <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.875rem', color: 'var(--text2)' }}>
+          {q.explanation}
+        </div>
+      )}
+      {isAdmin && (
+        <div className="flex justify-between" style={{ marginTop: '1.25rem' }}>
+          <button className="btn btn-ghost" onClick={onPrev} disabled={q.index === 0}>← Previous</button>
+          <button className="btn btn-primary" onClick={onNext} disabled={q.index >= q.total - 1}>Next →</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LeaderboardCard({ scores, finished }) {
+  return (
+    <div className="card fade-up" style={{ maxWidth: 480, margin: '2rem auto' }}>
+      <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 700, marginBottom: '1rem' }}>
+        {finished ? '🏆 Final results' : 'Leaderboard'}
+      </h2>
+      <ol style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: 0, listStyle: 'none' }}>
+        {scores.map((s, i) => (
+          <li key={s.username} style={{
+            display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0.75rem',
+            background: i === 0 && finished ? 'rgba(251,191,36,0.1)' : 'var(--bg3)',
+            border: `1px solid ${i === 0 && finished ? 'rgba(251,191,36,0.3)' : 'var(--border)'}`,
+            borderRadius: 6,
+          }}>
+            <span>{i + 1}. {s.username}</span>
+            <span style={{ fontFamily: 'var(--font-head)', fontWeight: 700 }}>{s.score}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
+export default function LiveQuiz() {
+  const { token, user } = useAuth()
+  const toast = useToast()
+  const socket = useLiveSocket()
+  const [joined, setJoined] = useState(false)
+  const [resuming, setResuming] = useState(false)
+  // Populated from localStorage on first render if this user has an
+  // unfinished channel from a previous (accidentally-ended) session.
+  const [resumable, setResumable] = useState(() => loadStoredChannel(user?.id))
+
+  const handleJoin = (code, password) => {
+    saveStoredChannel(user?.id, { code, password: password || '', name: null })
+    socket.join(code, token, password)
+    setJoined(true)
+  }
+
+  const handleResume = () => {
+    if (!resumable) return
+    setResuming(true)
+    socket.join(resumable.code, token, resumable.password)
+    setJoined(true)
+  }
+
+  const handleJoinDifferent = () => {
+    clearStoredChannel(user?.id)
+    setResumable(null)
+  }
+
+  useEffect(() => {
+    if (socket.error) {
+      toast(socket.error, 'error')
+      setJoined(false)
+      setResuming(false)
+      // Whatever we had stored (bad password, closed channel, etc.) is no
+      // longer valid — fall back to a plain join form next time.
+      clearStoredChannel(user?.id)
+      setResumable(null)
+    }
+  }, [socket.error])
+
+  // Once the server confirms the join, we know the real channel name — keep
+  // localStorage in sync so a future "Resume" card shows the right name.
+  useEffect(() => {
+    if (joined && socket.channelInfo && user?.id) {
+      const existing = loadStoredChannel(user.id) || {}
+      saveStoredChannel(user.id, { ...existing, name: socket.channelInfo.name })
+    }
+  }, [joined, socket.channelInfo, user?.id])
+
+  // Note: we deliberately keep the stored channel around even after the quiz
+  // finishes — the admin may still be running the post-quiz explanation
+  // walkthrough, and resuming into a finished channel is harmless (the
+  // server just replays the final leaderboard / explain state). If the
+  // channel is later closed by the admin, the next resume attempt will get
+  // a "Channel not found" error, which already clears storage above.
+
+  if (!joined) {
+    return (
+      <div className="page-wrap">
+        {resumable ? (
+          <ResumeCard
+            channelName={resumable.name}
+            onResume={handleResume}
+            onJoinDifferent={handleJoinDifferent}
+            resuming={resuming}
+          />
+        ) : (
+          <JoinForm onJoin={handleJoin} />
+        )}
+      </div>
+    )
+  }
+
+  const {
+    channelInfo, users, quizState, question, locked, leaderboard,
+    explainQuestion, isAdmin, submitAnswer, explainNext, explainPrev,
+  } = socket
+
+  return (
+    <div className="page-wrap">
+      {explainQuestion ? (
+        <ExplainCard q={explainQuestion} isAdmin={isAdmin} onPrev={explainPrev} onNext={explainNext} />
+      ) : quizState === 'finished' ? (
+        <LeaderboardCard scores={leaderboard} finished />
+      ) : quizState === 'waiting' || !question ? (
+        channelInfo && <WaitingRoom channelInfo={channelInfo} users={users} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <LiveQuestionCard question={question} locked={locked} onAnswer={submitAnswer} />
+          {leaderboard.length > 0 && <LeaderboardCard scores={leaderboard} />}
+        </div>
+      )}
+    </div>
+  )
+}

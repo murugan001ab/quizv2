@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from sqlalchemy import select
 from app.database import init_db, AsyncSessionLocal
-from app.routers import auth, admin, user, ws
+from app.routers import auth, admin, user, ws, live
 from app.core.security import hash_password
 from app.models.user import User
 
@@ -31,6 +31,7 @@ app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(user.router)
 app.include_router(ws.router)
+app.include_router(live.router)
 
 
 @app.on_event("startup")
@@ -40,9 +41,10 @@ async def startup():
         result = await db.execute(select(User).where(User.username == "admin"))
         if not result.scalar_one_or_none():
             admin_user = User(
+                name="Admin",
                 username="admin",
                 email="admin@quiz.com",
-                hashed_password=hash_password("admin123"),
+                hashed_password=hash_password("Admin@123"),
                 is_admin=True,
             )
             db.add(admin_user)

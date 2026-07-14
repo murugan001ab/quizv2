@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from typing import List, Optional
 
 from app.database import get_db
-from app.models.quiz import Quiz, Question, QuizAttempt
+from app.models.quiz import Quiz, Question, QuizAttempt, QuizType
 from app.models.user import User
 from app.schemas.quiz import QuizOut, QuizDetail, SubmitAnswers, AttemptOut, AttemptResult
 from app.core.security import get_current_user
@@ -59,7 +59,7 @@ async def available_quizzes(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    q = select(Quiz).where(Quiz.is_active == True)
+    q = select(Quiz).where(Quiz.is_active == True, Quiz.quiz_type == QuizType.scheduled.value)
     if difficulty:
         q = q.where(Quiz.difficulty == difficulty)
     if subject:
@@ -82,7 +82,7 @@ async def get_quiz(
 ):
     result = await db.execute(
         select(Quiz).options(selectinload(Quiz.questions))
-        .where(Quiz.id == quiz_id, Quiz.is_active == True)
+        .where(Quiz.id == quiz_id, Quiz.is_active == True, Quiz.quiz_type == QuizType.scheduled.value)
     )
     quiz = result.scalar_one_or_none()
     if not quiz:
@@ -101,7 +101,7 @@ async def start_quiz(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Quiz).where(Quiz.id == quiz_id, Quiz.is_active == True))
+    result = await db.execute(select(Quiz).where(Quiz.id == quiz_id, Quiz.is_active == True, Quiz.quiz_type == QuizType.scheduled.value))
     quiz = result.scalar_one_or_none()
     if not quiz:
         raise HTTPException(404, "Quiz not found")

@@ -29,6 +29,21 @@ export const api = {
     return res.json()
   },
   me: (token) => req('GET', '/auth/me', null, token),
+  changePassword: (token, data) => req('PUT', '/auth/change-password', data, token),
+  uploadProfilePicture: async (token, file) => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await fetch(BASE + '/auth/profile-picture', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Upload failed' }))
+      throw new Error(err.detail || 'Upload failed')
+    }
+    return res.json()
+  },
 
   // Admin
   adminStats: (token) => req('GET', '/admin/stats', null, token),
@@ -43,6 +58,11 @@ export const api = {
   deleteQuestion: (token, qId) => req('DELETE', `/admin/questions/${qId}`, null, token),
   quizAttempts: (token, quizId) => req('GET', `/admin/quizzes/${quizId}/attempts`, null, token),
   adminLive: (token) => req('GET', '/admin/live', null, token),
+
+  // Live quiz channels
+  createLiveChannel: (token, data) => req('POST', '/live/channels', data, token),
+  listLiveChannels: (token) => req('GET', '/live/channels', null, token),
+  closeLiveChannel: (token, code) => req('DELETE', `/live/channels/${code}`, null, token),
 
   // User
   userQuizzes: (token, params = '') => req('GET', `/user/quizzes${params}`, null, token),

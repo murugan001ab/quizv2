@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime
-from app.models.quiz import DifficultyLevel
+from app.models.quiz import DifficultyLevel, QuizType
 
 
 class QuestionCreate(BaseModel):
@@ -32,6 +32,7 @@ class QuizCreate(BaseModel):
     difficulty: DifficultyLevel
     subject: str
     topic: str
+    quiz_type: QuizType = QuizType.scheduled
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
 
@@ -42,6 +43,7 @@ class QuizUpdate(BaseModel):
     difficulty: Optional[DifficultyLevel] = None
     subject: Optional[str] = None
     topic: Optional[str] = None
+    quiz_type: Optional[QuizType] = None
     scheduled_start: Optional[datetime] = None
     scheduled_end: Optional[datetime] = None
     is_active: Optional[bool] = None
@@ -54,6 +56,7 @@ class QuizOut(BaseModel):
     difficulty: DifficultyLevel
     subject: str
     topic: str
+    quiz_type: QuizType
     scheduled_start: Optional[datetime]
     scheduled_end: Optional[datetime]
     is_active: bool
