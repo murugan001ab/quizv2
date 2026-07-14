@@ -23,6 +23,7 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username or email already exists")
 
     user = User(
+        name=data.name,
         username=data.username,
         email=data.email,
         hashed_password=hash_password(data.password),

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { Spinner } from '../components/Shared'
@@ -8,6 +8,8 @@ export default function Login() {
   const { login } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = location.state?.from
   const [form, setForm] = useState({ username: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -19,7 +21,11 @@ export default function Login() {
     try {
       const user = await login(form.username, form.password)
       toast('Welcome back! 👋', 'success')
-      navigate(user.is_admin ? '/admin' : '/dashboard', { replace: true })
+      // If they arrived here via a shared link (e.g. /live/:code/:link_token)
+      // that redirected them to log in first, send them back to it instead
+      // of the default dashboard.
+      const dest = from ? `${from.pathname}${from.search || ''}` : (user.is_admin ? '/admin' : '/dashboard')
+      navigate(dest, { replace: true })
     } catch (e) {
       setError(e.message)
     } finally {

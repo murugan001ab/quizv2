@@ -7,7 +7,7 @@ import { Spinner } from '../components/Shared'
 export default function Register() {
   const toast = useToast()
   const navigate = useNavigate()
-  const [form, setForm] = useState({ username: '', email: '', password: '' })
+  const [form, setForm] = useState({ name: '', username: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -36,6 +36,11 @@ export default function Register() {
         {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={submit} className="flex flex-col gap-4">
+          <div className="input-group">
+            <label className="input-label">Full name</label>
+            <input className="input" placeholder="Your name" value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+          </div>
           <div className="input-group">
             <label className="input-label">Username</label>
             <input className="input" placeholder="choose_a_username" value={form.username}

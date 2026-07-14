@@ -4,6 +4,7 @@ from typing import Optional
 
 
 class UserCreate(BaseModel):
+    name: str
     username: str
     email: EmailStr
     password: str
@@ -16,6 +17,7 @@ class UserLogin(BaseModel):
 
 class UserOut(BaseModel):
     id: int
+    name: str
     username: str
     email: str
     is_admin: bool

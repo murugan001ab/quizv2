@@ -9,13 +9,14 @@ token is passed as a query param since browsers can't set custom headers
 on a WebSocket handshake.
 """
 import time as _time
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import ALGORITHM, SECRET_KEY, get_admin_user, get_current_user
+from app.core.security import ALGORITHM, SECRET_KEY, get_admin_user, get_current_user,create_access_token
 from app.database import AsyncSessionLocal, get_db
 from app.live_session_manager import (
     LiveQuestion,
@@ -55,6 +56,8 @@ async def create_channel(
     if not questions:
         raise HTTPException(400, "This quiz has no questions yet")
 
+    
+
     live_questions = [
         LiveQuestion(
             id=q.id,
@@ -75,12 +78,20 @@ async def create_channel(
         admin_user_id=admin.id,
         questions=live_questions,
     )
+
+    linkdata={
+        "code":channel.code,
+        "password":channel.password
+    }
+    link_token=create_access_token(linkdata)
+
     return LiveChannelOut(
         code=channel.code,
         name=channel.name,
         locked=bool(channel.password),
         quiz_id=quiz.id,
         quiz_title=quiz.title,
+        link_token=link_token
     )
 
 
@@ -103,6 +114,25 @@ def _verify_token(token: str) -> dict | None:
         return None
 
 
+async def _safe_send(ws: WebSocket, data: dict):
+    """send_json, but tolerant of a client that's already gone. The raw
+    transport can be closed out from under us (tab closed, fast reconnect,
+    React double-mount opening/closing a socket in quick succession) and
+    send_json then raises a bare RuntimeError -- not a WebSocketDisconnect --
+    which would otherwise crash the ASGI worker for this connection."""
+    try:
+        await ws.send_json(data)
+    except Exception:
+        pass
+
+
+async def _safe_close(ws: WebSocket, code: int = 1000):
+    try:
+        await ws.close(code=code)
+    except Exception:
+        pass
+
+
 async def _get_user(payload: dict) -> User | None:
     user_id = payload.get("sub")
     if user_id is None:
@@ -117,26 +147,36 @@ async def _get_user(payload: dict) -> User | None:
 
 
 @router.websocket("/ws/{code}")
-async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
+async def live_ws(websocket: WebSocket, code: str, token: str = Query(...),link: Optional[str]=None):
     await websocket.accept()
+
+    # A shared invite link (/live/:code/:link_token) encodes the channel's
+    # code + password in a signed token, generated once in create_channel().
+    # If it decodes successfully and matches this channel, the visitor is
+    # trusted to skip typing the password manually.
+    link_valid = False
+    if link:
+        link_payload = _verify_token(link)
+        if link_payload and link_payload.get("code") == code.upper():
+            link_valid = True
 
     payload = _verify_token(token)
     if not payload:
-        await websocket.send_json({"type": "error", "message": "Invalid or expired token"})
-        await websocket.close(code=1008)
+        await _safe_send(websocket, {"type": "error", "message": "Invalid or expired token"})
+        await _safe_close(websocket, code=1008)
         return
 
     user = await _get_user(payload)
     if not user:
-        await websocket.send_json({"type": "error", "message": "User not found"})
-        await websocket.close(code=1008)
+        await _safe_send(websocket, {"type": "error", "message": "User not found"})
+        await _safe_close(websocket, code=1008)
         return
 
 
     channel = store.get(code)
     if not channel:
-        await websocket.send_json({"type": "error", "message": "Channel not found"})
-        await websocket.close()
+        await _safe_send(websocket, {"type": "error", "message": "Channel not found"})
+        await _safe_close(websocket)
         return
 
     participant: Participant | None = None
@@ -144,14 +184,16 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
     try:
         first_msg = await websocket.receive_json()
         if first_msg.get("type") != "join":
-            await websocket.send_json({"type": "error", "message": "Expected a join message first"})
-            await websocket.close()
+            await _safe_send(websocket, {"type": "error", "message": "Expected a join message first"})
+            await _safe_close(websocket)
             return
 
         password = first_msg.get("password")
-        if not channel.check_password(password):
-            await websocket.send_json({"type": "error", "message": "Incorrect password"})
-            await websocket.close()
+        # A valid invite link already proves the visitor has the password
+        # (it's embedded in the signed token), so skip the manual check.
+        if not link_valid and not channel.check_password(password):
+            await _safe_send(websocket, {"type": "error", "message": "Incorrect password"})
+            await _safe_close(websocket)
             return
 
         is_admin = user.is_admin and user.id == channel.admin_user_id
@@ -170,10 +212,10 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
                 stale = True
 
             if not stale:
-                await websocket.send_json(
-                    {"type": "error", "message": "You're already connected in another tab"}
+                await _safe_send(
+                    websocket, {"type": "error", "message": "You're already connected in another tab"}
                 )
-                await websocket.close()
+                await _safe_close(websocket)
                 return
 
             try:
@@ -194,7 +236,8 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
         )
         channel.participants[user.id] = participant
 
-        await websocket.send_json(
+        await _safe_send(
+            websocket,
             {
                 "type": "joined",
                 "channel": {
@@ -204,7 +247,7 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
                     "quiz_title": channel.quiz_title,
                 },
                 "is_admin": is_admin,
-            }
+            },
         )
         await send_user_list(channel)
 
@@ -214,21 +257,23 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
             q = channel.questions[channel.current_question_index]
             if channel.phase == "results":
                 if is_admin:
-                    await websocket.send_json(
+                    await _safe_send(
+                        websocket,
                         {
                             "type": "question_ended",
                             "index": channel.current_question_index,
                             "correct_index": channel.last_correct_index,
                             "counts": channel.question_counts(channel.current_question_index),
-                        }
+                        },
                     )
                 else:
-                    await websocket.send_json(
-                        {"type": "question_locked", "index": channel.current_question_index}
+                    await _safe_send(
+                        websocket, {"type": "question_locked", "index": channel.current_question_index}
                     )
-                await websocket.send_json({"type": "leaderboard", "scores": channel.leaderboard()})
+                await _safe_send(websocket, {"type": "leaderboard", "scores": channel.leaderboard()})
             else:
-                await websocket.send_json(
+                await _safe_send(
+                    websocket,
                     {
                         "type": "question",
                         "index": channel.current_question_index,
@@ -237,16 +282,16 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
                         "text": q.text,
                         "options": q.options,
                         "time_limit": channel.remaining_seconds(),
-                    }
+                    },
                 )
         elif channel.state == "finished":
-            await websocket.send_json(
-                {"type": "quiz_ended", "final_leaderboard": channel.leaderboard()}
+            await _safe_send(
+                websocket, {"type": "quiz_ended", "final_leaderboard": channel.leaderboard()}
             )
             if channel.phase == "explain":
                 payload = explain_payload(channel)
                 if payload is not None:
-                    await websocket.send_json(payload)
+                    await _safe_send(websocket, payload)
 
         while True:
             msg = await websocket.receive_json()
@@ -254,8 +299,8 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
 
             if mtype == "start_quiz":
                 if not participant.is_admin:
-                    await websocket.send_json(
-                        {"type": "error", "message": "Only the admin can start the quiz"}
+                    await _safe_send(
+                        websocket, {"type": "error", "message": "Only the admin can start the quiz"}
                     )
                     continue
                 if channel.state != "waiting":
@@ -267,8 +312,8 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
 
             elif mtype == "answer":
                 if participant.is_admin:
-                    await websocket.send_json(
-                        {"type": "error", "message": "The host doesn't take the quiz"}
+                    await _safe_send(
+                        websocket, {"type": "error", "message": "The host doesn't take the quiz"}
                     )
                     continue
                 if channel.state != "in_progress" or participant.answered_current:
@@ -290,12 +335,12 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
                     elapsed = _time.time() - channel.current_question_started_at
                     speed_bonus = max(0.0, question.time_limit - elapsed)
                     participant.score += 100 + int(speed_bonus * 5)
-                await websocket.send_json({"type": "answer_ack", "correct": is_correct})
+                await _safe_send(websocket, {"type": "answer_ack", "correct": is_correct})
 
             elif mtype == "start_explain":
                 if not participant.is_admin:
-                    await websocket.send_json(
-                        {"type": "error", "message": "Only the admin can start the explanation"}
+                    await _safe_send(
+                        websocket, {"type": "error", "message": "Only the admin can start the explanation"}
                     )
                     continue
                 if channel.state != "finished" or not channel.questions:
@@ -306,8 +351,8 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
 
             elif mtype in ("explain_next", "explain_prev"):
                 if not participant.is_admin:
-                    await websocket.send_json(
-                        {"type": "error", "message": "Only the admin can move through the explanation"}
+                    await _safe_send(
+                        websocket, {"type": "error", "message": "Only the admin can move through the explanation"}
                     )
                     continue
                 if channel.phase != "explain":
@@ -321,7 +366,9 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...)):
             elif mtype == "leave":
                 break
 
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, RuntimeError):
+        # RuntimeError covers the transport-already-closed race (client
+        # gone between message receipt and our reply going out).
         pass
     finally:
         if participant is not None:

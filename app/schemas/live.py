@@ -16,6 +16,7 @@ class LiveChannelOut(BaseModel):
     locked: bool
     quiz_id: int
     quiz_title: str
+    link_token:str
 
 
 class LiveChannelSummary(BaseModel):

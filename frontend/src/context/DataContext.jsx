@@ -133,8 +133,11 @@ export function DataProvider({ children }) {
     refresh: () => refresh('adminUsers', () => api.adminUsers(token), TTL.adminUsers),
   }
 
+  const [link,setLink]=useState('')
+
+
   return (
-    <DataContext.Provider value={{ userQuizzes, myResults, adminStats, adminQuizzes, adminUsers, cacheVersion: version }}>
+    <DataContext.Provider value={{ userQuizzes, myResults, adminStats, adminQuizzes, adminUsers, cacheVersion: version,link ,setLink}}>
       {children}
     </DataContext.Provider>
   )

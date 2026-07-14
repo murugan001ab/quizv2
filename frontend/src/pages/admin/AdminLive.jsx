@@ -4,11 +4,16 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import { useLiveSocket } from '../../hooks/useLiveSocket'
 import { Loading, Spinner } from '../../components/Shared'
-
+import { useData } from '../../context/DataContext'
+// Falls back to the current origin when VITE_URL isn't set (it's missing
+// from .env.production), and is normalized to always end in exactly one
+// slash so the concatenation below can't produce "...comlive/CODE" or
+// "...com//live/CODE".
+const FRONTEND_BASE = (import.meta.env.VITE_URL || (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/*$/, '/')
 // ── Step 0: if this admin already has an open channel (e.g. they got
 // disconnected, refreshed, or navigated away mid-session), let them
 // reclaim it as host instead of being forced into creating a new one.
-function MyChannelsPanel({ token, userId, toast, onRejoined, refreshTick }) {
+function MyChannelsPanel({ token,link, userId, toast, onRejoined,onCopy, refreshTick }) {
   const [channels, setChannels] = useState([])
   const [loading, setLoading] = useState(true)
   const [pending, setPending] = useState(null) // code currently being rejoined
@@ -36,8 +41,9 @@ function MyChannelsPanel({ token, userId, toast, onRejoined, refreshTick }) {
   return (
     <div className="card fade-up" style={{ maxWidth: 480, marginBottom: '1.25rem' }}>
       <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-        Rejoin a channel you're already hosting
+        Rejoin a channel you're already hosting 
       </div>
+      <button onClick={()=>{onCopy(link)}}>copy</button>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
         {channels.map(ch => (
           <div key={ch.code} style={{
@@ -73,6 +79,7 @@ function MyChannelsPanel({ token, userId, toast, onRejoined, refreshTick }) {
 function CreateChannelForm({ token, toast, onCreated }) {
   const [quizzes, setQuizzes] = useState([])
   const [loading, setLoading] = useState(true)
+  
   const [quizId, setQuizId] = useState('')
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
@@ -195,12 +202,13 @@ function ExplainPanel({ q, onPrev, onNext }) {
   )
 }
 
-function HostRoom({ socket, channel, token, toast, onReset }) {
+function HostRoom({ socket,link, channel, token,onCopy, toast, onReset }) {
   const {
     users, quizState, question, correctIndex, leaderboard, startQuiz, leave,
     explainQuestion, startExplain, explainNext, explainPrev,
   } = socket
   const [closing, setClosing] = useState(false)
+
 
   const doReset = async () => {
     setClosing(true)
@@ -223,8 +231,9 @@ function HostRoom({ socket, channel, token, toast, onReset }) {
               Join code
             </div>
             <div style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: '2rem', letterSpacing: '0.1em' }}>
-              {channel.code}
+              {channel.code} <button onClick={()=>{onCopy(channel.code)}}>copy</button>
             </div>
+            <button onClick={()=>{onCopy(link)}}>copy</button>
           </div>
           <span className={`badge ${channel.locked ? 'badge-gray' : 'badge-blue'}`}>
             {channel.locked ? '🔒 Password protected' : '🔓 Open'}
@@ -319,14 +328,19 @@ function HostRoom({ socket, channel, token, toast, onReset }) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminLive() {
   const { token, user } = useAuth()
+  const {link,setLink} =useData()
   const toast = useToast()
   const socket = useLiveSocket()
   const [channel, setChannel] = useState(null)
   // Bumped whenever a channel is created/closed so MyChannelsPanel refetches.
   const [refreshTick, setRefreshTick] = useState(0)
+  const [isCopied, setIsCopied] = useState(false);
 
   const handleCreated = (created, password) => {
     setChannel(created)
+    const link=FRONTEND_BASE+"live/"+created.code+"/"+created.link_token // FRONTEND_BASE always ends in "/" now
+    console.log("link is",link)
+    setLink(link)
     socket.join(created.code, token, password)
     setRefreshTick(t => t + 1)
   }
@@ -335,13 +349,26 @@ export default function AdminLive() {
   // sourced from the channel summary instead of the create-channel response.
   const handleRejoined = (summary, password) => {
     setChannel(summary)
+   
     socket.join(summary.code, token, password)
   }
 
   const handleReset = () => {
     setChannel(null)
     setRefreshTick(t => t + 1)
+
   }
+
+  const handleCopy = async (textToCopy) => {
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setIsCopied(true);
+      toast('copyed')
+      setTimeout(() => setIsCopied(false), 2000); // Reset status after 2 seconds
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+    }
+  };
 
   useEffect(() => {
     if (socket.error) toast(socket.error, 'error')
@@ -359,16 +386,18 @@ export default function AdminLive() {
           {user && (
             <MyChannelsPanel
               token={token}
+              link={link}
               userId={user.id}
               toast={toast}
               onRejoined={handleRejoined}
+              onCopy={handleCopy}
               refreshTick={refreshTick}
             />
           )}
           <CreateChannelForm token={token} toast={toast} onCreated={handleCreated} />
         </>
       ) : (
-        <HostRoom socket={socket} channel={channel} token={token} toast={toast} onReset={handleReset} />
+        <HostRoom socket={socket} channel={channel} link={link} token={token} onCopy={handleCopy} toast={toast} onReset={handleReset} />
       )}
     </div>
   )

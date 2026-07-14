@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useLiveSocket } from '../hooks/useLiveSocket'
-
+import { useParams } from 'react-router-dom'
 const KEYS = ['A', 'B', 'C', 'D']
 
 // ── Resume-on-accidental-exit ───────────────────────────────────────────────
@@ -292,6 +292,24 @@ export default function LiveQuiz() {
   // server just replays the final leaderboard / explain state). If the
   // channel is later closed by the admin, the next resume attempt will get
   // a "Channel not found" error, which already clears storage above.
+
+  const {code,link_token}=useParams()
+
+  // Shared-link entry point (/live/:code/:link_token). This must only run
+  // once per link, not on every render — the old version called handleJoin
+  // directly in the render body, which re-fired on every socket message
+  // (each one triggers a re-render), tearing down and reopening a brand new
+  // WebSocket in a loop. It also called handleJoin(code, token, null,
+  // link_token) against a (code, password) signature, so the auth token was
+  // sent as the channel password and link_token was silently dropped.
+  useEffect(() => {
+    if (code && link_token && token && !joined) {
+      saveStoredChannel(user?.id, { code, password: '', name: null })
+      socket.join(code, token, null, link_token)
+      setJoined(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, link_token, token])
 
   if (!joined) {
     return (

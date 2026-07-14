@@ -3,14 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 // Same pattern as AdminMonitor's buildAdminWsUrl: reuse VITE_API_URL so the
 // ws/http always point at the same backend, falling back to same-origin so
 // the Vite dev proxy can do its job.
-function buildLiveWsUrl(code, token) {
+function buildLiveWsUrl(code, token,link_token) {
   const apiBase = import.meta.env.VITE_API_URL || ''
   if (apiBase) {
     const wsBase = apiBase.replace(/^http/, 'ws').replace(/\/$/, '')
-    return `${wsBase}/live/ws/${code}?token=${token}`
+    return `${wsBase}/live/ws/${code}?token=${token}&link=${link_token}`
   }
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  return `${proto}://${window.location.host}/live/ws/${code}?token=${token}`
+  return `${proto}://${window.location.host}/live/ws/${code}?token=${token}&link=${link_token}`
 }
 
 export function useLiveSocket() {
@@ -28,9 +28,9 @@ export function useLiveSocket() {
   const [explainQuestion, setExplainQuestion] = useState(null)
   const [error, setError] = useState('')
 
-  const join = useCallback((code, token, password) => {
+  const join = useCallback((code, token, password,link_token) => {
     setError('')
-    const ws = new WebSocket(buildLiveWsUrl(code, token))
+    const ws = new WebSocket(buildLiveWsUrl(code, token,link_token))
     wsRef.current = ws
 
     ws.onopen = () => {

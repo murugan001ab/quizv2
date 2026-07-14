@@ -1,106 +1,245 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
 import { DataProvider } from './context/DataContext'
+
 import Sidebar from './components/Sidebar'
 import { Loading } from './components/Shared'
 
 import Login from './pages/Login'
-import Register from './pages/Register'
 import Account from './pages/Account'
 import UserDashboard from './pages/UserDashboard'
 import Quizzes from './pages/Quizzes'
 import TakeQuiz from './pages/TakeQuiz'
 import Result from './pages/Result'
 import Results from './pages/Results'
+import LiveQuiz from './pages/LiveQuiz'
+
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminQuizzes from './pages/admin/AdminQuizzes'
 import AdminUsers from './pages/admin/AdminUsers'
-import AdminMonitor from './pages/admin/AdminMonitor'
 import AdminLive from './pages/admin/AdminLive'
-import LiveQuiz from './pages/LiveQuiz'
+
 
 function AppShell({ children }) {
   return (
     <div className="min-h-screen">
       <Sidebar />
-      <main className="pl-[17.5rem] pr-4 py-4 min-h-screen">{children}</main>
+
+      <main className="pl-[17.5rem] pr-4 py-4 min-h-screen">
+        {children}
+      </main>
     </div>
   )
 }
 
+
 function RequireAuth({ children, adminOnly = false }) {
   const { user, loading } = useAuth()
-  if (loading) return <Loading />
-  if (!user) return <Navigate to="/login" replace />
-  if (adminOnly && !user.is_admin) return <Navigate to="/dashboard" replace />
+  const location = useLocation()
+
+  if (loading) {
+    return <Loading />
+  }
+
+  if (!user) {
+    // Remember where they were headed (e.g. a shared live-quiz link) so
+    // Login can send them back here instead of to the default dashboard.
+    return <Navigate to="/login" replace state={{ from: location }} />
+  }
+
+  if (adminOnly && !user.is_admin) {
+    return <Navigate to="/dashboard" replace />
+  }
+
   return children
 }
 
+
 function RootRedirect() {
   const { user, loading } = useAuth()
-  if (loading) return <Loading />
-  if (!user) return <Navigate to="/login" replace />
-  return <Navigate to={user.is_admin ? '/admin' : '/dashboard'} replace />
+
+  if (loading) {
+    return <Loading />
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  return (
+    <Navigate
+      to={user.is_admin ? '/admin' : '/dashboard'}
+      replace
+    />
+  )
 }
+
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <DataProvider>
-            <Routes>
-              {/* Public */}
-              <Route path="/login"    element={<Login />} />
-              {/* <Route path="/register" element={<Register />} /> */}
+    <AuthProvider>
+      <ToastProvider>
+        <DataProvider>
+          <Routes>
 
-              {/* User routes */}
-              <Route path="/dashboard" element={
-                <RequireAuth><AppShell><UserDashboard /></AppShell></RequireAuth>
-              } />
-              <Route path="/quizzes" element={
-                <RequireAuth><AppShell><Quizzes /></AppShell></RequireAuth>
-              } />
-              <Route path="/quiz/:id" element={
-                <RequireAuth><AppShell><TakeQuiz /></AppShell></RequireAuth>
-              } />
-              <Route path="/results" element={
-                <RequireAuth><AppShell><Results /></AppShell></RequireAuth>
-              } />
-              <Route path="/results/:id" element={
-                <RequireAuth><AppShell><Result /></AppShell></RequireAuth>
-              } />
-              <Route path="/live" element={
-                <RequireAuth><AppShell><LiveQuiz /></AppShell></RequireAuth>
-              } />
-              <Route path="/account" element={
-                <RequireAuth><AppShell><Account /></AppShell></RequireAuth>
-              } />
+            {/* ================= PUBLIC ================= */}
 
-              {/* Admin routes */}
-              <Route path="/admin" element={
-                <RequireAuth adminOnly><AppShell><AdminDashboard /></AppShell></RequireAuth>
-              } />
-              <Route path="/admin/quizzes" element={
-                <RequireAuth adminOnly><AppShell><AdminQuizzes /></AppShell></RequireAuth>
-              } />
-              <Route path="/admin/users" element={
-                <RequireAuth adminOnly><AppShell><AdminUsers /></AppShell></RequireAuth>
-              } />
-              {/* <Route path="/admin/monitor" element={
-                <RequireAuth adminOnly><AppShell><AdminMonitor /></AppShell></RequireAuth>
-              } /> */}
-              <Route path="/admin/live" element={
-                <RequireAuth adminOnly><AppShell><AdminLive /></AppShell></RequireAuth>
-              } />
+            <Route
+              path="/login"
+              element={<Login />}
+            />
 
-              {/* Fallback */}
-              <Route path="*" element={<RootRedirect />} />
-            </Routes>
-          </DataProvider>
-        </ToastProvider>
-      </AuthProvider>
-    </BrowserRouter>
+
+            {/* ================= USER ================= */}
+
+            <Route
+              path="/dashboard"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <UserDashboard />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/quizzes"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <Quizzes />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/quiz/:id"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <TakeQuiz />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/results"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <Results />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/results/:id"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <Result />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/live"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <LiveQuiz />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/live/:code/:link_token"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <LiveQuiz />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+
+            <Route
+              path="/account"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <Account />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+
+            {/* ================= ADMIN ================= */}
+
+            <Route
+              path="/admin"
+              element={
+                <RequireAuth adminOnly>
+                  <AppShell>
+                    <AdminDashboard />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/quizzes"
+              element={
+                <RequireAuth adminOnly>
+                  <AppShell>
+                    <AdminQuizzes />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/users"
+              element={
+                <RequireAuth adminOnly>
+                  <AppShell>
+                    <AdminUsers />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/admin/live"
+              element={
+                <RequireAuth adminOnly>
+                  <AppShell>
+                    <AdminLive />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+
+            {/* ================= FALLBACK ================= */}
+
+            <Route
+              path="*"
+              element={<RootRedirect />}
+            />
+
+          </Routes>
+        </DataProvider>
+      </ToastProvider>
+    </AuthProvider>
   )
 }
