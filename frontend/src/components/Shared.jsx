@@ -1,8 +1,10 @@
 export function DiffBadge({ level }) {
-  return <span className={`badge badge-${level}`}>{level}</span>
+  const cls = { easy: 'badge-easy', medium: 'badge-medium', hard: 'badge-hard' }[level] || 'badge-gray'
+  return <span className={cls}>{level}</span>
 }
 
 export function SubjectTag({ subject }) {
+  if (!subject) return null
   return <span className="tag">{subject}</span>
 }
 
@@ -12,7 +14,7 @@ export function Spinner({ sm }) {
 
 export function Loading() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '40vh' }}>
+    <div className="flex items-center justify-center h-[40vh]">
       <div className="spinner" />
     </div>
   )
@@ -20,10 +22,10 @@ export function Loading() {
 
 export function EmptyState({ icon = '📭', title, sub, action }) {
   return (
-    <div className="empty-state">
-      <div className="icon">{icon}</div>
-      <h3>{title}</h3>
-      {sub && <p style={{ fontSize: '0.875rem', marginBottom: '1.5rem' }}>{sub}</p>}
+    <div className="glass-panel flex flex-col items-center justify-center text-center py-16 px-6 fade-up">
+      <div className="text-4xl mb-4 opacity-80">{icon}</div>
+      <h3 className="font-head font-bold text-lg text-white/90">{title}</h3>
+      {sub && <p className="text-sm text-white/40 mt-2 mb-6 max-w-xs">{sub}</p>}
       {action}
     </div>
   )
@@ -31,10 +33,13 @@ export function EmptyState({ icon = '📭', title, sub, action }) {
 
 export function Modal({ title, onClose, children }) {
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <div className="flex justify-between items-center" style={{ marginBottom: '1.5rem' }}>
-          <h2 className="modal-title" style={{ margin: 0 }}>{title}</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-space-950/70 backdrop-blur-md p-4 animate-[fadeUp_0.25s_ease-out]"
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div className="glass-panel w-full max-w-lg max-h-[85vh] overflow-y-auto p-7 shadow-glass-lg">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="font-head font-bold text-xl text-white/90">{title}</h2>
           <button className="btn btn-ghost btn-icon" onClick={onClose}>✕</button>
         </div>
         {children}
@@ -46,9 +51,9 @@ export function Modal({ title, onClose, children }) {
 export function ScheduleInfo({ start, end }) {
   const fmt = d => d ? new Date(d).toLocaleString() : '—'
   return (
-    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.8rem', color: 'var(--text3)' }}>
-      <span>🗓 Start: <b style={{ color: 'var(--text2)' }}>{fmt(start)}</b></span>
-      <span>⏰ End: <b style={{ color: 'var(--text2)' }}>{fmt(end)}</b></span>
+    <div className="flex gap-4 flex-wrap text-xs text-white/40">
+      <span>🗓 Start: <b className="text-white/60 font-medium">{fmt(start)}</b></span>
+      <span>⏰ End: <b className="text-white/60 font-medium">{fmt(end)}</b></span>
     </div>
   )
 }
@@ -62,23 +67,33 @@ export function QuizCard({ quiz, onClick, actions }) {
   const isEnded = end && now > end
 
   return (
-    <div className={`card card-hover fade-up`} onClick={onClick} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+    <div
+      onClick={onClick}
+      className="glass-panel glass-hover fade-up cursor-pointer flex flex-col gap-3 p-5"
+    >
       <div className="flex justify-between items-center">
         <DiffBadge level={quiz.difficulty} />
-        {isLive && !isEnded && <span className="flex items-center gap-1" style={{ fontSize: '0.72rem', color: 'var(--accent)' }}><span className="live-dot" /> LIVE</span>}
-        {isUpcoming && <span className="badge badge-blue">UPCOMING</span>}
-        {isEnded && <span className="badge badge-gray">ENDED</span>}
+        {isLive && !isEnded && (
+          <span className="flex items-center gap-1.5 text-[0.7rem] font-medium text-accent-300">
+            <span className="live-dot" /> LIVE
+          </span>
+        )}
+        {isUpcoming && <span className="badge-blue">UPCOMING</span>}
+        {isEnded && <span className="badge-gray">ENDED</span>}
       </div>
+
       <div>
-        <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.25rem' }}>{quiz.title}</div>
-        <div style={{ fontSize: '0.8rem', color: 'var(--text3)' }}>{quiz.description}</div>
+        <div className="font-head font-bold text-[1.05rem] text-white/90 mb-1">{quiz.title}</div>
+        <div className="text-sm text-white/40 line-clamp-2">{quiz.description}</div>
       </div>
-      <div className="flex gap-1" style={{ flexWrap: 'wrap' }}>
+
+      <div className="flex gap-1.5 flex-wrap">
         <SubjectTag subject={quiz.subject} />
         <SubjectTag subject={quiz.topic} />
       </div>
-      <div className="flex justify-between items-center" style={{ marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
-        <span style={{ fontSize: '0.8rem', color: 'var(--text3)' }}>📝 {quiz.question_count} questions</span>
+
+      <div className="flex justify-between items-center mt-auto pt-3 border-t border-white/10">
+        <span className="text-xs text-white/40">📝 {quiz.question_count} questions</span>
         {actions}
       </div>
     </div>

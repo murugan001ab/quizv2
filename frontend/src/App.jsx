@@ -22,9 +22,9 @@ import LiveQuiz from './pages/LiveQuiz'
 
 function AppShell({ children }) {
   return (
-    <div className="app-shell">
+    <div className="min-h-screen">
       <Sidebar />
-      <main className="app-main">{children}</main>
+      <main className="pl-[17.5rem] pr-4 py-4 min-h-screen">{children}</main>
     </div>
   )
 }

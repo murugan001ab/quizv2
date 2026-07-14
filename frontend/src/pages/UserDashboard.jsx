@@ -48,15 +48,15 @@ export default function UserDashboard() {
         <div className="stat-card">
           <div className="stat-label">Avg. Score</div>
           <div className="stat-value">
-            {avgScore}<span style={{ fontSize: '1rem', color: 'var(--text3)' }}>%</span>
+            {avgScore}<span className="text-base text-white/40">%</span>
           </div>
           <div className="stat-sub">Across all tests</div>
         </div>
       </div>
 
       <div className="fade-up-2">
-        <div className="flex justify-between items-center" style={{ marginBottom: '1rem' }}>
-          <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '1.1rem' }}>Available Tests</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-head font-bold text-lg text-white/90">Available Tests</h2>
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/quizzes')}>View All →</button>
         </div>
         {quizzes.length === 0

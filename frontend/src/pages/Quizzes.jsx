@@ -33,16 +33,16 @@ export default function Quizzes() {
         <p className="page-sub">Filter by subject or difficulty</p>
       </div>
 
-      <div className="flex gap-2 fade-up-1" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div className="input-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-          <label className="input-label" style={{ whiteSpace: 'nowrap' }}>Subject</label>
-          <select className="input" value={subject} onChange={e => setSubject(e.target.value)} style={{ width: 'auto' }}>
+      <div className="flex gap-3 flex-wrap fade-up-1">
+        <div className="input-group flex-row items-center gap-2.5">
+          <label className="input-label whitespace-nowrap mb-0">Subject</label>
+          <select className="input w-auto" value={subject} onChange={e => setSubject(e.target.value)}>
             {SUBJECTS.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
-        <div className="input-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
-          <label className="input-label" style={{ whiteSpace: 'nowrap' }}>Difficulty</label>
-          <select className="input" value={diff} onChange={e => setDiff(e.target.value)} style={{ width: 'auto' }}>
+        <div className="input-group flex-row items-center gap-2.5">
+          <label className="input-label whitespace-nowrap mb-0">Difficulty</label>
+          <select className="input w-auto" value={diff} onChange={e => setDiff(e.target.value)}>
             {DIFFS.map(d => <option key={d}>{d}</option>)}
           </select>
         </div>

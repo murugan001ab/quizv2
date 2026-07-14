@@ -36,7 +36,7 @@ export default function Login() {
 
         {error && <div className="auth-error">{error}</div>}
 
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={submit} className="flex flex-col gap-4">
           <div className="input-group">
             <label className="input-label">Username</label>
             <input className="input" placeholder="your_username" value={form.username}
@@ -47,7 +47,7 @@ export default function Login() {
             <input className="input" type="password" placeholder="••••••••" value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
           </div>
-          <button className="btn btn-primary btn-lg w-full" type="submit" disabled={loading} style={{ marginTop: '0.5rem' }}>
+          <button className="btn btn-primary btn-lg w-full mt-2" type="submit" disabled={loading}>
             {loading ? <Spinner sm /> : 'Sign In'}
           </button>
         </form>
