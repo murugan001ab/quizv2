@@ -44,16 +44,16 @@ function clearStoredChannel(userId) {
 
 function ResumeCard({ channelName, onResume, onJoinDifferent, resuming }) {
   return (
-    <div className="card fade-up" style={{ maxWidth: 420, margin: '2rem auto' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div className="glass-panel fade-up max-w-[420px] my-8 mx-auto p-6">
+      <div className="flex flex-col gap-4">
         <div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+          <div className="text-xs text-white/40 font-semibold tracking-wide uppercase mb-1">
             You were in a live quiz
           </div>
-          <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 700 }}>
+          <h2 className="font-head font-bold">
             {channelName || 'Live quiz'}
           </h2>
-          <div style={{ color: 'var(--text3)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <div className="text-white/40 text-sm mt-1">
             Looks like you got disconnected. You're still logged in, so you can jump right back in.
           </div>
         </div>
@@ -73,16 +73,15 @@ function JoinForm({ onJoin }) {
   const [password, setPassword] = useState('')
 
   return (
-    <div className="card fade-up" style={{ maxWidth: 420, margin: '2rem auto' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div className="glass-panel fade-up max-w-[420px] my-8 mx-auto p-6">
+      <div className="flex flex-col gap-4">
         <div className="input-group">
           <label className="input-label">Channel code</label>
           <input
-            className="input"
+            className="input font-head font-bold tracking-[0.1em]"
             value={code}
             onChange={e => setCode(e.target.value.toUpperCase())}
             placeholder="e.g. 7F3K2Q"
-            style={{ letterSpacing: '0.1em', fontFamily: 'var(--font-head)', fontWeight: 700 }}
           />
         </div>
         <div className="input-group">
@@ -99,24 +98,21 @@ function JoinForm({ onJoin }) {
 
 function WaitingRoom({ channelInfo, users }) {
   return (
-    <div className="card fade-up" style={{ maxWidth: 480, margin: '2rem auto' }}>
-      <h2 style={{ fontFamily: 'var(--font-head)', fontWeight: 700, marginBottom: '0.25rem' }}>{channelInfo.name}</h2>
-      <div style={{ color: 'var(--text3)', fontSize: '0.875rem', marginBottom: '1.25rem' }}>{channelInfo.quiz_title}</div>
-      <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+    <div className="glass-panel fade-up max-w-[480px] my-8 mx-auto p-6">
+      <h2 className="font-head font-bold mb-1">{channelInfo.name}</h2>
+      <div className="text-white/40 text-sm mb-5">{channelInfo.quiz_title}</div>
+      <div className="text-xs text-white/40 font-semibold tracking-wide uppercase mb-2">
         Connected ({users.length})
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginBottom: '1.25rem' }}>
+      <div className="flex flex-col gap-1.5 mb-5">
         {users.map(u => (
-          <div key={u.user_id} style={{
-            display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0.75rem',
-            background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6,
-          }}>
+          <div key={u.user_id} className="flex justify-between px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg">
             <span>{u.username}</span>
-            {u.is_admin && <span style={{ color: 'var(--accent)', fontSize: '0.72rem' }}>host</span>}
+            {u.is_admin && <span className="text-accent-400 text-xs">host</span>}
           </div>
         ))}
       </div>
-      <div style={{ textAlign: 'center', color: 'var(--text3)', fontSize: '0.875rem' }}>
+      <div className="text-center text-white/40 text-sm">
         Waiting for the host to start the quiz…
       </div>
     </div>

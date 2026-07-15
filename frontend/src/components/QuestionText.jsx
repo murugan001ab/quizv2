@@ -27,7 +27,7 @@ function splitLines(text) {
 // ── Assertion-Reason renderer ─────────────────────────────
 function AssertionReason({ lines }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div className="flex flex-col gap-2">
       {lines.map((line, i) => {
         const isA = /கூற்று\s*\(A\)/i.test(line)
         const isR = /காரணம்\s*\(R\)/i.test(line)
@@ -35,25 +35,23 @@ function AssertionReason({ lines }) {
           const [label, ...rest] = line.split(':')
           const body = rest.join(':').trim()
           return (
-            <div key={i} style={{
-              display: 'flex', gap: '0.625rem',
-              padding: '0.5rem 0.75rem',
-              background: isA ? 'rgba(96,165,250,0.07)' : 'rgba(167,139,250,0.07)',
-              border: `1px solid ${isA ? 'rgba(96,165,250,0.2)' : 'rgba(167,139,250,0.2)'}`,
-              borderRadius: 6,
-            }}>
-              <span style={{
-                fontWeight: 700, fontSize: '0.8rem', flexShrink: 0,
-                color: isA ? 'var(--blue)' : 'var(--purple, #a78bfa)',
-                paddingTop: '0.1rem',
-              }}>{label.trim()}:</span>
-              <span style={{ lineHeight: 1.6, color: 'var(--text)' }}>{body}</span>
+            <div
+              key={i}
+              className={`flex gap-2.5 rounded-lg px-3 py-2 border
+                ${isA
+                  ? 'bg-accent-400/[0.07] border-accent-400/20'
+                  : 'bg-glow-violet/[0.07] border-glow-violet/20'}`}
+            >
+              <span className={`font-bold text-sm shrink-0 pt-px ${isA ? 'text-accent-300' : 'text-glow-violet'}`}>
+                {label.trim()}:
+              </span>
+              <span className="leading-relaxed text-white/90">{body}</span>
             </div>
           )
         }
         // trailing instruction line
         return (
-          <p key={i} style={{ color: 'var(--text2)', fontSize: '0.9rem', marginTop: '0.25rem', lineHeight: 1.6 }}>
+          <p key={i} className="text-white/60 text-sm mt-1 leading-relaxed">
             {line}
           </p>
         )
@@ -80,32 +78,24 @@ function MatchTable({ lines }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+    <div className="flex flex-col gap-2">
       {header.map((h, i) => (
-        <p key={i} style={{ fontWeight: 600, color: 'var(--text)', lineHeight: 1.6 }}>{h}</p>
+        <p key={i} className="font-semibold text-white/90 leading-relaxed">{h}</p>
       ))}
       {(leftCol.length > 0 || rightCol.length > 0) && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '0.375rem 1.5rem',
-          padding: '0.75rem',
-          background: 'var(--bg3)',
-          border: '1px solid var(--border)',
-          borderRadius: 8,
-        }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', paddingBottom: '0.25rem', borderBottom: '1px solid var(--border)' }}>Column A</div>
-          <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', paddingBottom: '0.25rem', borderBottom: '1px solid var(--border)' }}>Column B</div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 p-3 bg-white/[0.04] border border-white/10 rounded-xl">
+          <div className="text-xs font-bold text-white/40 uppercase tracking-wide pb-1 border-b border-white/10">Column A</div>
+          <div className="text-xs font-bold text-white/40 uppercase tracking-wide pb-1 border-b border-white/10">Column B</div>
           {Array.from({ length: Math.max(leftCol.length, rightCol.length) }).map((_, i) => (
             <>
-              <div key={`l${i}`} style={{ fontSize: '0.875rem', color: 'var(--text)', lineHeight: 1.5, padding: '0.2rem 0' }}>{leftCol[i] || ''}</div>
-              <div key={`r${i}`} style={{ fontSize: '0.875rem', color: 'var(--text)', lineHeight: 1.5, padding: '0.2rem 0' }}>{rightCol[i] || ''}</div>
+              <div key={`l${i}`} className="text-sm text-white/90 leading-normal py-0.5">{leftCol[i] || ''}</div>
+              <div key={`r${i}`} className="text-sm text-white/90 leading-normal py-0.5">{rightCol[i] || ''}</div>
             </>
           ))}
         </div>
       )}
       {footer.map((f, i) => (
-        <p key={i} style={{ color: 'var(--text2)', fontSize: '0.9rem', lineHeight: 1.6 }}>{f}</p>
+        <p key={i} className="text-white/60 text-sm leading-relaxed">{f}</p>
       ))}
     </div>
   )
@@ -125,19 +115,14 @@ function RomanList({ lines }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+    <div className="flex flex-col gap-1.5">
       {header.map((h, i) => (
-        <p key={i} style={{ fontWeight: 500, color: 'var(--text)', lineHeight: 1.7 }}>{h}</p>
+        <p key={i} className="font-medium text-white/90 leading-loose">{h}</p>
       ))}
-      <div style={{
-        display: 'flex', flexDirection: 'column', gap: '0.25rem',
-        padding: '0.625rem 0.875rem',
-        background: 'var(--bg3)', border: '1px solid var(--border)',
-        borderRadius: 8, marginTop: '0.25rem',
-      }}>
+      <div className="flex flex-col gap-1 px-3.5 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl mt-1">
         {items.map((item, i) => (
-          <div key={i} style={{ display: 'flex', gap: '0.5rem', fontSize: '0.9rem', lineHeight: 1.6, color: 'var(--text)' }}>
-            <span style={{ fontWeight: 700, color: 'var(--accent)', minWidth: 28, flexShrink: 0 }}>
+          <div key={i} className="flex gap-2 text-sm leading-relaxed text-white/90">
+            <span className="font-bold text-accent-400 min-w-[28px] shrink-0">
               {item.match(/^[IVX]+\./)?.[0]}
             </span>
             <span>{item.replace(/^[IVX]+\.\s*/, '')}</span>
@@ -145,14 +130,14 @@ function RomanList({ lines }) {
         ))}
       </div>
       {footer.map((f, i) => (
-        <p key={i} style={{ color: 'var(--text2)', fontSize: '0.9rem', lineHeight: 1.6 }}>{f}</p>
+        <p key={i} className="text-white/60 text-sm leading-relaxed">{f}</p>
       ))}
     </div>
   )
 }
 
 // ── Main export ───────────────────────────────────────────
-export default function QuestionText({ text, style = {} }) {
+export default function QuestionText({ text, className = '' }) {
   if (!text) return null
   const lines = splitLines(text)
 
@@ -161,15 +146,15 @@ export default function QuestionText({ text, style = {} }) {
   const hasMatch = lines.some(l => MATCH_RE.test(l))
   const hasRoman = lines.some(l => isRomanLine(l))
 
-  if (hasAssertion) return <div style={style}><AssertionReason lines={lines} /></div>
-  if (hasMatch)     return <div style={style}><MatchTable lines={lines} /></div>
-  if (hasRoman)     return <div style={style}><RomanList lines={lines} /></div>
+  if (hasAssertion) return <div className={className}><AssertionReason lines={lines} /></div>
+  if (hasMatch)     return <div className={className}><MatchTable lines={lines} /></div>
+  if (hasRoman)     return <div className={className}><RomanList lines={lines} /></div>
 
   // Plain — just render with proper line breaks
   return (
-    <div style={{ lineHeight: 1.7, fontWeight: 500, color: 'var(--text)', ...style }}>
+    <div className={`leading-relaxed font-medium text-white/90 ${className}`}>
       {lines.map((line, i) => (
-        <p key={i} style={{ margin: i > 0 ? '0.375rem 0 0' : 0 }}>{line}</p>
+        <p key={i} className={i > 0 ? 'mt-1.5' : ''}>{line}</p>
       ))}
     </div>
   )

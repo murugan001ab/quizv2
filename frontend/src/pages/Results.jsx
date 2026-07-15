@@ -38,14 +38,14 @@ export default function Results() {
           <div className="stat-card">
             <div className="stat-label">Avg. Score</div>
             <div className="stat-value">
-              {avgScore}<span style={{ fontSize: '1rem', color: 'var(--text3)' }}>%</span>
+              {avgScore}<span className="text-base text-white/40">%</span>
             </div>
             <div className="stat-sub">Across all tests</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Best Score</div>
-            <div className="stat-value" style={{ color: 'var(--accent)' }}>
-              {best}<span style={{ fontSize: '1rem', color: 'var(--text3)' }}>%</span>
+            <div className="stat-value text-accent-400">
+              {best}<span className="text-base text-white/40">%</span>
             </div>
             <div className="stat-sub">Personal best</div>
           </div>
@@ -68,13 +68,13 @@ export default function Results() {
                 <tbody>
                   {results.map(r => {
                     const pct = Math.round((r.score / r.total) * 100)
-                    const color = pct >= 80 ? 'var(--accent)' : pct >= 60 ? 'var(--blue)' : pct >= 40 ? 'var(--yellow)' : 'var(--red)'
+                    const colorCls = pct >= 80 ? 'text-accent-400' : pct >= 60 ? 'text-[#5fdcff]' : pct >= 40 ? 'text-amber-400' : 'text-rose-400'
                     return (
-                      <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/results/${r.id}`)}>
-                        <td style={{ fontWeight: 500 }}>{r.quiz_title}</td>
+                      <tr key={r.id} className="cursor-pointer" onClick={() => navigate(`/results/${r.id}`)}>
+                        <td className="font-medium">{r.quiz_title}</td>
                         <td><DiffBadge level={r.difficulty} /></td>
-                        <td style={{ fontFamily: 'var(--font-head)', fontWeight: 700 }}>{r.score}/{r.total}</td>
-                        <td><span style={{ fontFamily: 'var(--font-head)', fontWeight: 700, color }}>{pct}%</span></td>
+                        <td className="font-head font-bold">{r.score}/{r.total}</td>
+                        <td><span className={`font-head font-bold ${colorCls}`}>{pct}%</span></td>
                         <td>{new Date(r.submitted_at).toLocaleDateString()}</td>
                         <td>
                           <button className="btn btn-ghost btn-sm"

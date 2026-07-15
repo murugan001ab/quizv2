@@ -78,10 +78,10 @@ export default function TakeQuiz() {
   if (loading) return <Loading />
   if (error) return (
     <div className="page-wrap">
-      <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-        <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔒</div>
-        <h2 style={{ fontFamily: 'var(--font-head)', marginBottom: '0.5rem' }}>Access Restricted</h2>
-        <p style={{ color: 'var(--text3)', marginBottom: '1.5rem' }}>{error}</p>
+      <div className="glass-panel text-center p-12">
+        <div className="text-3xl mb-4">🔒</div>
+        <h2 className="font-head font-bold mb-2">Access Restricted</h2>
+        <p className="text-white/40 mb-6">{error}</p>
         <button className="btn btn-ghost" onClick={() => navigate('/quizzes')}>← Back to Quizzes</button>
       </div>
     </div>
@@ -92,20 +92,20 @@ export default function TakeQuiz() {
   const total    = quiz.questions.length
 
   return (
-    <div className="page-wrap" style={{ maxWidth: 860 }}>
-      <div className="flex justify-between items-center fade-up" style={{ marginBottom: '1.5rem' }}>
+    <div className="page-wrap max-w-[860px]">
+      <div className="flex justify-between items-center fade-up mb-6">
         <div>
-          <div className="flex items-center gap-1" style={{ marginBottom: '0.25rem' }}>
+          <div className="flex items-center gap-1 mb-1">
             <DiffBadge level={quiz.difficulty} />
             <span className="tag">{quiz.subject}</span>
           </div>
-          <h1 style={{ fontFamily: 'var(--font-head)', fontWeight: 800, fontSize: '1.4rem' }}>{quiz.title}</h1>
+          <h1 className="font-head font-extrabold text-[1.4rem]">{quiz.title}</h1>
         </div>
         <Timer end={quiz.scheduled_end} onExpire={submit} />
       </div>
 
-      <div className="fade-up-1" style={{ marginBottom: '1.5rem' }}>
-        <div className="flex justify-between items-center" style={{ marginBottom: '0.5rem', fontSize: '0.8rem', color: 'var(--text3)' }}>
+      <div className="fade-up-1 mb-6">
+        <div className="flex justify-between items-center mb-2 text-[0.8rem] text-white/40">
           <span>Question {current + 1} of {total}</span>
           <span>{answered}/{total} answered</span>
         </div>
@@ -114,24 +114,24 @@ export default function TakeQuiz() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_200px] gap-6 items-start">
         <div className="fade-up-2">
-          <div className="card" style={{ marginBottom: '1rem' }}>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text3)', marginBottom: '0.875rem', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          <div className="glass-panel p-6 mb-4">
+            <div className="text-xs text-white/40 mb-3.5 font-semibold tracking-wide uppercase">
               Q{current + 1}
-              {q.year && <span style={{ marginLeft: '0.5rem', color: 'var(--accent)', opacity: 0.8 }}>· {q.year}</span>}
+              {q.year && <span className="ml-2 text-accent-400 opacity-80">· {q.year}</span>}
             </div>
             <QuestionText text={q.text} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          <div className="flex flex-col gap-2.5">
             {q.options.map((opt, i) => (
               <button key={i} className={`option-btn ${answers[q.id] === i ? 'selected' : ''}`} onClick={() => select(q.id, i)}>
                 <span className="option-key">{KEYS[i]}</span>
-                <span style={{ flex: 1, textAlign: 'left', lineHeight: 1.5 }}>{opt}</span>
+                <span className="flex-1 text-left leading-normal">{opt}</span>
               </button>
             ))}
           </div>
-          <div className="flex justify-between" style={{ marginTop: '1.5rem' }}>
+          <div className="flex justify-between mt-6">
             <button className="btn btn-ghost" onClick={() => setCurrent(c => c - 1)} disabled={current === 0}>← Previous</button>
             {current < total - 1
               ? <button className="btn btn-primary" onClick={() => setCurrent(c => c + 1)}>Next →</button>
@@ -142,20 +142,20 @@ export default function TakeQuiz() {
           </div>
         </div>
 
-        <div className="card fade-up-3" style={{ position: 'sticky', top: '1.5rem' }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Questions</div>
-          <div className="q-nav" style={{ marginBottom: '1rem' }}>
+        <div className="glass-panel fade-up-3 p-6 sticky top-6">
+          <div className="text-xs text-white/40 font-semibold tracking-wide uppercase mb-3">Questions</div>
+          <div className="q-nav mb-4">
             {quiz.questions.map((qq, i) => (
               <div key={i} className={`q-dot ${i === current ? 'current' : answers[qq.id] !== undefined ? 'answered' : ''}`} onClick={() => setCurrent(i)}>{i + 1}</div>
             ))}
           </div>
           <div className="divider" />
-          <div style={{ fontSize: '0.75rem', color: 'var(--text3)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <div className="q-dot answered" style={{ width: 16, height: 16, fontSize: '0' }} /> Answered
+          <div className="text-xs text-white/40">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="q-dot answered w-4 h-4 text-[0]" /> Answered
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div className="q-dot" style={{ width: 16, height: 16, fontSize: '0' }} /> Unanswered
+            <div className="flex items-center gap-2">
+              <div className="q-dot w-4 h-4 text-[0]" /> Unanswered
             </div>
           </div>
           <div className="divider" />

@@ -36,28 +36,21 @@ function ProfilePictureCard({ user, token, toast, updateUser }) {
   const avatarSrc = preview || user?.profile_url
 
   return (
-    <div className="card fade-up" style={{ maxWidth: 480 }}>
-      <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+    <div className="glass-panel fade-up max-w-[480px] p-6">
+      <div className="text-xs text-white/40 font-semibold tracking-wide uppercase mb-4">
         Profile picture
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        <div style={{
-          width: 88, height: 88, borderRadius: '50%', flexShrink: 0, overflow: 'hidden',
-          background: 'var(--bg3)', border: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-        }}>
+      <div className="flex items-center gap-5">
+        <div className="relative w-[88px] h-[88px] rounded-full shrink-0 overflow-hidden bg-white/[0.04] border border-white/10 flex items-center justify-center">
           {avatarSrc ? (
-            <img src={avatarSrc} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={avatarSrc} alt="Profile" className="w-full h-full object-cover" />
           ) : (
-            <span style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '1.75rem', color: 'var(--text3)' }}>
+            <span className="font-head font-bold text-2xl text-white/40">
               {(user?.username || '?').slice(0, 1).toUpperCase()}
             </span>
           )}
           {uploading && (
-            <div style={{
-              position: 'absolute', inset: 0, background: 'rgba(10,10,15,0.6)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
               <Spinner sm />
             </div>
           )}
@@ -66,7 +59,7 @@ function ProfilePictureCard({ user, token, toast, updateUser }) {
           <button className="btn btn-ghost btn-sm" onClick={pickFile} disabled={uploading}>
             {user?.profile_url ? 'Change picture' : 'Upload picture'}
           </button>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text3)', marginTop: '0.5rem' }}>
+          <div className="text-xs text-white/40 mt-2">
             JPEG, PNG, WEBP or GIF · up to 5MB
           </div>
         </div>
@@ -74,7 +67,7 @@ function ProfilePictureCard({ user, token, toast, updateUser }) {
           ref={fileRef}
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
-          style={{ display: 'none' }}
+          className="hidden"
           onChange={onFileChange}
         />
       </div>
@@ -108,11 +101,11 @@ function ChangePasswordCard({ token, toast }) {
   }
 
   return (
-    <div className="card fade-up-1" style={{ maxWidth: 480 }}>
-      <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+    <div className="glass-panel fade-up-1 max-w-[480px] p-6">
+      <div className="text-xs text-white/40 font-semibold tracking-wide uppercase mb-4">
         Change password
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="flex flex-col gap-4">
         <div className="input-group">
           <label className="input-label">Current password</label>
           <input className="input" type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" />
@@ -144,13 +137,13 @@ export default function Account() {
         <p className="page-sub">Manage your profile picture and password</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div className="card" style={{ maxWidth: 480 }}>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text3)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+      <div className="flex flex-col gap-6">
+        <div className="glass-panel max-w-[480px] p-6">
+          <div className="text-xs text-white/40 font-semibold tracking-wide uppercase mb-2">
             Signed in as
           </div>
-          <div style={{ fontWeight: 600 }}>{user?.username}</div>
-          <div style={{ fontSize: '0.875rem', color: 'var(--text3)' }}>{user?.email}</div>
+          <div className="font-semibold">{user?.username}</div>
+          <div className="text-sm text-white/40">{user?.email}</div>
         </div>
 
         <ProfilePictureCard user={user} token={token} toast={toast} updateUser={updateUser} />

@@ -1,3 +1,59 @@
+import { useState } from 'react'
+
+export function CopyButton({ value, label = 'Copy', className = '', variant = 'ghost' }) {
+  const [copied, setCopied] = useState(false)
+
+  const doCopy = async (e) => {
+    e.stopPropagation()
+    try {
+      await navigator.clipboard.writeText(value)
+    } catch {
+      // Fallback for non-secure contexts / older browsers
+      const ta = document.createElement('textarea')
+      ta.value = value
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy') } catch {}
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1600)
+  }
+
+  const base = variant === 'ghost'
+    ? 'btn btn-ghost btn-sm'
+    : 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium bg-white/[0.05] border border-white/10 text-white/70 hover:bg-white/[0.09] hover:text-white transition-all duration-200'
+
+  return (
+    <button
+      type="button"
+      onClick={doCopy}
+      className={`${base} relative overflow-hidden ${copied ? '!border-accent-400/50 !text-accent-300' : ''} ${className}`}
+    >
+      <span className="relative inline-flex items-center justify-center w-3.5 h-3.5">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className={`absolute inset-0 w-3.5 h-3.5 transition-all duration-300 ease-out ${copied ? 'opacity-0 scale-50 rotate-12' : 'opacity-100 scale-100 rotate-0'}`}
+        >
+          <rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          className={`absolute inset-0 w-3.5 h-3.5 text-accent-300 transition-all duration-300 ease-out ${copied ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 -rotate-12'}`}
+        >
+          <path d="M4 12.5l5 5L20 6.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
+      <span className="transition-all duration-200">{copied ? 'Copied!' : label}</span>
+    </button>
+  )
+}
+
 export function DiffBadge({ level }) {
   const cls = { easy: 'badge-easy', medium: 'badge-medium', hard: 'badge-hard' }[level] || 'badge-gray'
   return <span className={cls}>{level}</span>
