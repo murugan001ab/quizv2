@@ -55,7 +55,10 @@ export function CopyButton({ value, label = 'Copy', className = '', variant = 'g
 }
 
 export function DiffBadge({ level }) {
-  const cls = { easy: 'badge-easy', medium: 'badge-medium', hard: 'badge-hard' }[level] || 'badge-gray'
+  const cls = {
+    easy: 'badge-easy', medium: 'badge-medium', hard: 'badge-hard',
+    basic: 'badge-easy', intermediate: 'badge-medium', advanced: 'badge-hard',
+  }[level] || 'badge-gray'
   return <span className={cls}>{level}</span>
 }
 

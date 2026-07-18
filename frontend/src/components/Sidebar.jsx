@@ -6,12 +6,14 @@ const userNav = [
   { to: '/quizzes', icon: '📋', label: 'Quizzes' },
   { to: '/live', icon: '⚡', label: 'Live Quiz' },
   { to: '/results', icon: '🏆', label: 'Results' },
+  { to: '/problems', icon: '💻', label: 'Code' },
   { to: '/account', icon: '👤', label: 'Account' },
 ]
 
 const adminNav = [
   { to: '/admin', icon: '⊞', label: 'Dashboard' },
   { to: '/admin/quizzes', icon: '📋', label: 'Manage Quizzes' },
+  { to: '/admin/problems', icon: '💻', label: 'Manage Problems' },
   { to: '/admin/users', icon: '👥', label: 'Users' },
   { to: '/admin/live', icon: '⚡', label: 'Live Quiz' },
   { to: '/account', icon: '👤', label: 'Account' },

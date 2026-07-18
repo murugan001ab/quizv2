@@ -15,12 +15,15 @@ import TakeQuiz from './pages/TakeQuiz'
 import Result from './pages/Result'
 import Results from './pages/Results'
 import LiveQuiz from './pages/LiveQuiz'
+import ProblemList from './pages/Problems/ProblemList'
+import ProblemSolve from './pages/Problems/ProblemSolve'
 
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminQuizzes from './pages/admin/AdminQuizzes'
 import AdminUsers from './pages/admin/AdminUsers'
 import AdminLive from './pages/admin/AdminLive'
-
+import AdminProblems from './pages/admin/AdminProblems'
+import ProblemForm from './pages/admin/ProblemForm'
 
 function AppShell({ children }) {
   return (
@@ -172,6 +175,26 @@ export default function App() {
 
 
             <Route
+              path="/problems"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <ProblemList />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+
+            <Route
+              path="/problems/:id"
+              element={
+                <RequireAuth>
+                  <ProblemSolve />
+                </RequireAuth>
+              }
+            />
+
+            <Route
               path="/account"
               element={
                 <RequireAuth>
@@ -181,6 +204,17 @@ export default function App() {
                 </RequireAuth>
               }
             />
+
+            {/* <Route
+              path="/code"
+              element={
+                <RequireAuth>
+                  <AppShell>
+                    <CodeEditor/>
+                  </AppShell>
+                </RequireAuth>
+              }
+            /> */}
 
 
             {/* ================= ADMIN ================= */}
@@ -206,7 +240,36 @@ export default function App() {
                 </RequireAuth>
               }
             />
-
+            <Route
+              path="/admin/problems"
+              element={
+                <RequireAuth adminOnly>
+                  <AppShell>
+                    <AdminProblems />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin/problems/new"
+              element={
+                <RequireAuth adminOnly>
+                  <AppShell>
+                    <ProblemForm />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin/problems/:id/edit"
+              element={
+                <RequireAuth adminOnly>
+                  <AppShell>
+                    <ProblemForm />
+                  </AppShell>
+                </RequireAuth>
+              }
+            />
             <Route
               path="/admin/users"
               element={
