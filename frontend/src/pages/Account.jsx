@@ -40,7 +40,7 @@ function ProfilePictureCard({ user, token, toast, updateUser }) {
       <div className="text-xs text-white/40 font-semibold tracking-wide uppercase mb-4">
         Profile picture
       </div>
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-5 flex-wrap">
         <div className="relative w-[88px] h-[88px] rounded-full shrink-0 overflow-hidden bg-white/[0.04] border border-white/10 flex items-center justify-center">
           {avatarSrc ? (
             <img src={avatarSrc} alt="Profile" className="w-full h-full object-cover" />

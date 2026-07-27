@@ -51,7 +51,7 @@ export default function Result() {
     <div className="page-wrap max-w-[760px]">
 
       {/* ── Score hero ── */}
-      <div className="glass-panel fade-up text-center p-10 mb-8">
+      <div className="glass-panel fade-up text-center p-6 sm:p-10 mb-8">
         <div className="text-4xl mb-2">{grade.emoji}</div>
         <div className="font-head text-2xl font-extrabold mb-1" style={{ color: grade.color }}>
           {grade.label}
@@ -138,7 +138,7 @@ export default function Result() {
       </div>
 
       {/* ── Footer ── */}
-      <div className="flex gap-2 fade-up-2 mt-6">
+      <div className="flex flex-col sm:flex-row gap-2 fade-up-2 mt-6">
         <button className="btn btn-ghost"   onClick={() => navigate('/results')}>← All Results</button>
         <button className="btn btn-primary" onClick={() => navigate('/quizzes')}>Take Another Quiz</button>
       </div>

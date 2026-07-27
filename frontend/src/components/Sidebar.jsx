@@ -1,13 +1,24 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-const userNav = [
+export const userNav = [
   { to: '/dashboard', icon: '⊞', label: 'Dashboard' },
   { to: '/quizzes', icon: '📋', label: 'Quizzes' },
   { to: '/live', icon: '⚡', label: 'Live Quiz' },
   { to: '/results', icon: '🏆', label: 'Results' },
   { to: '/problems', icon: '💻', label: 'Code' },
   { to: '/account', icon: '👤', label: 'Account' },
+]
+
+// Mobile bottom tab bar items. 6 items is a bit tighter than the ideal 5,
+// but Code is important enough to keep one tap away rather than burying it.
+export const userNavMobile = [
+  { to: '/dashboard', icon: '⊞', label: 'Home' },
+  { to: '/quizzes', icon: '📋', label: 'Quizzes' },
+  { to: '/problems', icon: '💻', label: 'Code' },
+  { to: '/live', icon: '⚡', label: 'Live' },
+  { to: '/results', icon: '🏆', label: 'Results' },
+  // { to: '/account', icon: '👤', label: 'Account' },
 ]
 
 const adminNav = [
@@ -25,7 +36,7 @@ export default function Sidebar() {
   const nav = user?.is_admin ? adminNav : userNav
 
   return (
-    <aside className="fixed left-4 top-4 bottom-4 w-64 z-40 flex flex-col glass-panel p-4 animate-fade-up">
+    <aside className="hidden md:flex fixed left-4 top-4 bottom-4 w-64 z-40 flex-col glass-panel p-4 animate-fade-up">
       <div className="px-2 pt-2 pb-5 border-b border-white/10 mb-4">
         <h1 className="font-head font-extrabold text-xl tracking-tight text-white">
           Quiz<span className="text-accent-400">Master</span>

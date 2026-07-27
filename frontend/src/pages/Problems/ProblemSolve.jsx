@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import CodeEditor from "../../components/CodeEditor";
+import MobileCodeToolbar from "../../components/MobileCodeToolbar";
 import { DiffBadge, Spinner } from "../../components/Shared";
+import { useKeyboardOpen } from "../../hooks/useKeyboardOffset";
 import { getProblem, unlockProblem, runCode, submitCode } from "../../api/problems";
 
 export default function ProblemSolve() {
@@ -13,6 +15,13 @@ export default function ProblemSolve() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null); // run result or submit result
   const [tab, setTab] = useState("description");
+  // Mobile only: the split view collapses to one column at a time, this
+  // picks which. Desktop (lg:+) always shows both side by side.
+  const [mobileView, setMobileView] = useState("problem");
+  const editorRef = useRef(null);
+  // Only reserve room for the floating extra-keys toolbar while the on-screen
+  // keyboard is actually open — otherwise that space just sits there empty.
+  const keyboardOpen = useKeyboardOpen();
 
   const load = () => {
     getProblem(id).then((p) => {
@@ -44,6 +53,7 @@ export default function ProblemSolve() {
     setBusy(true);
     setResult(null);
     setTab("results");
+    setMobileView("problem");
     try {
       const r = await runCode(id, code);
       setResult({ kind: "run", ...r });
@@ -56,6 +66,7 @@ export default function ProblemSolve() {
     setBusy(true);
     setResult(null);
     setTab("results");
+    setMobileView("problem");
     try {
       const r = await submitCode(id, code);
       setResult({ kind: "submit", ...r });
@@ -108,28 +119,70 @@ export default function ProblemSolve() {
   return (
     <div className="h-screen flex flex-col">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 glass shrink-0 z-10">
-        <div className="flex items-center gap-3 min-w-0">
+      <header className="flex items-center justify-between px-3 sm:px-5 py-3 sm:py-3.5 border-b border-white/10 glass shrink-0 z-10 gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <Link to="/problems" className="btn btn-ghost btn-icon shrink-0" title="Back to problems">
             ←
           </Link>
-          <div className="min-w-0">
-            <h1 className="font-head font-bold text-white/90 truncate leading-tight">
+          <div className={`min-w-0 ${mobileView === "code" ? "hidden lg:block" : ""}`}>
+            <h1 className="font-head font-bold text-white/90 truncate leading-tight text-sm sm:text-base">
               {problem.title}
             </h1>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <DiffBadge level={problem.difficulty} />
-              {problem.solved && <span className="badge-easy">✅ Solved</span>}
-              {problem.topic?.name && <span className="tag">{problem.topic.name}</span>}
+              {problem.solved && <span className="badge-easy">Solved</span>}
+              {/* {problem.topic?.name && <span className="tag">{problem.topic.name}</span>} */}
             </div>
           </div>
         </div>
       </header>
 
+      {/* Mobile only: switch between the problem panel and the editor —
+          there isn't room to show both side by side below lg. */}
+      <div className="lg:hidden flex gap-1.5 px-3 pt-3 shrink-0">
+        {[
+          { key: "problem", label: "Problem" },
+          { key: "code", label: "Code" },
+        ].map((v) => (
+          <button
+            key={v.key}
+            onClick={() => setMobileView(v.key)}
+            className={`flex-1 py-2 rounded-2xl text-sm font-medium transition-all duration-200
+              ${mobileView === v.key
+                ? "bg-white/[0.09] text-white border border-white/10 shadow-inner-glass"
+                : "text-white/40 border border-transparent"}`}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Mobile only, code view only: Run/Submit right under the tabs so
+          they're reachable the instant you're done typing — no need to
+          scroll (or fight the on-screen keyboard) to reach them at the
+          bottom of the editor. */}
+      {mobileView === "code" && (
+        <div className="lg:hidden flex items-center gap-2 px-3 pt-3 shrink-0">
+          <button
+            onClick={() => setCode(problem.starter_code || "")}
+            className="btn btn-ghost btn-icon shrink-0"
+            title="Reset to starter code"
+          >
+            ↺
+          </button>
+          <button onClick={handleRun} disabled={busy} className="btn btn-ghost flex-1">
+            {busy ? <Spinner sm /> : "▶"} Run
+          </button>
+          <button onClick={handleSubmit} disabled={busy} className="btn btn-primary flex-1">
+            {busy ? <Spinner sm /> : "✓"} Submit
+          </button>
+        </div>
+      )}
+
       {/* Main split view */}
-      <div className="flex-1 min-h-0 grid grid-cols-2 gap-4 p-4">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4">
         {/* Left: description / test cases / results */}
-        <div className="glass-panel flex flex-col min-h-0 overflow-hidden">
+        <div className={`glass-panel flex-col min-h-0 overflow-hidden ${mobileView === "problem" ? "flex" : "hidden"} lg:flex`}>
           <div className="flex gap-1.5 px-4 pt-4 shrink-0">
             {["description", "testcases", "results"].map((t) => (
               <button
@@ -192,12 +245,15 @@ export default function ProblemSolve() {
         </div>
 
         {/* Right: editor + actions */}
-        <div className="flex flex-col min-h-0 gap-3">
-          <div className="flex-1 min-h-0">
-            <CodeEditor value={code} onChange={setCode} />
+        <div className={`flex-col min-h-0 gap-3 ${mobileView === "code" ? "flex" : "hidden"} lg:flex`}>
+          <div className={`flex-1 min-h-0 ${keyboardOpen ? "pb-24" : ""}`}>
+            <CodeEditor ref={editorRef} value={code} onChange={setCode} />
           </div>
 
-          <div className="glass-panel px-4 py-3 flex items-center justify-between shrink-0">
+          <MobileCodeToolbar editorRef={editorRef} />
+
+          {/* Desktop only — mobile gets the compact bar under the tabs above */}
+          <div className="hidden lg:flex glass-panel px-4 py-3 items-center justify-between shrink-0">
             <button
               onClick={() => setCode(problem.starter_code || "")}
               className="btn btn-ghost btn-sm"

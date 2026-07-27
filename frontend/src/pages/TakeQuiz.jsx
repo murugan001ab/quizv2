@@ -93,13 +93,13 @@ export default function TakeQuiz() {
 
   return (
     <div className="page-wrap max-w-[860px]">
-      <div className="flex justify-between items-center fade-up mb-6">
-        <div>
+      <div className="flex flex-wrap justify-between items-start gap-3 fade-up mb-6">
+        <div className="min-w-0">
           <div className="flex items-center gap-1 mb-1">
             <DiffBadge level={quiz.difficulty} />
             <span className="tag">{quiz.subject}</span>
           </div>
-          <h1 className="font-head font-extrabold text-[1.4rem]">{quiz.title}</h1>
+          <h1 className="font-head font-extrabold text-[1.15rem] sm:text-[1.4rem] break-words">{quiz.title}</h1>
         </div>
         <Timer end={quiz.scheduled_end} onExpire={submit} />
       </div>
@@ -131,18 +131,18 @@ export default function TakeQuiz() {
               </button>
             ))}
           </div>
-          <div className="flex justify-between mt-6">
-            <button className="btn btn-ghost" onClick={() => setCurrent(c => c - 1)} disabled={current === 0}>← Previous</button>
+          <div className="flex gap-3 mt-6">
+            <button className="btn btn-ghost flex-1 sm:flex-initial" onClick={() => setCurrent(c => c - 1)} disabled={current === 0}>← Previous</button>
             {current < total - 1
-              ? <button className="btn btn-primary" onClick={() => setCurrent(c => c + 1)}>Next →</button>
-              : <button className="btn btn-primary" onClick={submit} disabled={submitting}>
+              ? <button className="btn btn-primary flex-1 sm:flex-initial" onClick={() => setCurrent(c => c + 1)}>Next →</button>
+              : <button className="btn btn-primary flex-1 sm:flex-initial" onClick={submit} disabled={submitting}>
                   {submitting ? <Spinner sm /> : '✓ Submit Quiz'}
                 </button>
             }
           </div>
         </div>
 
-        <div className="glass-panel fade-up-3 p-6 sticky top-6">
+        <div className="glass-panel fade-up-3 p-6 md:sticky md:top-6">
           <div className="text-xs text-white/40 font-semibold tracking-wide uppercase mb-3">Questions</div>
           <div className="q-nav mb-4">
             {quiz.questions.map((qq, i) => (

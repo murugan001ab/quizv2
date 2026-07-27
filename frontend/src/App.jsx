@@ -5,6 +5,8 @@ import { ToastProvider } from './context/ToastContext'
 import { DataProvider } from './context/DataContext'
 
 import Sidebar from './components/Sidebar'
+import MobileHeader from './components/MobileHeader'
+import BottomNav from './components/BottomNav'
 import { Loading } from './components/Shared'
 
 import Login from './pages/Login'
@@ -29,10 +31,13 @@ function AppShell({ children }) {
   return (
     <div className="min-h-screen">
       <Sidebar />
+      <MobileHeader />
 
-      <main className="pl-[17.5rem] pr-4 py-4 min-h-screen">
+      <main className="min-h-screen px-4 pt-[4.5rem] pb-24 md:pl-[17.5rem] md:pr-4 md:pt-4 md:pb-4">
         {children}
       </main>
+
+      <BottomNav />
     </div>
   )
 }

@@ -115,7 +115,7 @@ export default function ProblemList() {
                 <span className="font-head font-semibold text-white/90 truncate">
                   {p.title}
                 </span>
-                {p.topic?.name && <span className="tag shrink-0">{p.topic.name}</span>}
+                {/* {p.topic?.name && <span className="tag shrink-0">{p.topic.name}</span>} */}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {p.solved && <span className="badge-easy">Solved</span>}
