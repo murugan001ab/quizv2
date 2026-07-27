@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 // the logo, profile summary and logout there; on mobile those live here so
 // they're reachable without a drawer.
 export default function MobileHeader() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
   return (
     <header className="md:hidden fixed top-0 inset-x-0 z-40 flex items-center justify-between gap-3 px-4 h-14 glass border-b border-white/10">
@@ -28,13 +28,7 @@ export default function MobileHeader() {
             </span>
           )}
         </Link>
-        <button
-          onClick={logout}
-          aria-label="Logout"
-          className="w-8 h-8 rounded-full flex items-center justify-center bg-white/[0.04] border border-white/10 text-white/60 active:scale-90 transition-transform"
-        >
-          ↩
-        </button>
+      
       </div>
     </header>
   )

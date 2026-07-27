@@ -9,6 +9,8 @@ function ProfilePictureCard({ user, token, toast, updateUser }) {
   const [preview, setPreview] = useState(null)
   const [uploading, setUploading] = useState(false)
 
+  
+
   const pickFile = () => fileRef.current?.click()
 
   const onFileChange = async (e) => {
@@ -127,12 +129,12 @@ function ChangePasswordCard({ token, toast }) {
 }
 
 export default function Account() {
-  const { user, token, updateUser } = useAuth()
+  const { user, token, updateUser,logout } = useAuth()
   const toast = useToast()
 
   return (
     <div className="page-wrap">
-      <div className="page-header fade-up">
+      <div className="page-header hidden sm:block fade-up ">
         <h1 className="page-title">Account</h1>
         <p className="page-sub">Manage your profile picture and password</p>
       </div>
@@ -148,6 +150,29 @@ export default function Account() {
 
         <ProfilePictureCard user={user} token={token} toast={toast} updateUser={updateUser} />
         <ChangePasswordCard token={token} toast={toast} />
+
+       <button
+  onClick={logout}
+  aria-label="Logout"
+  className="
+    max-w-[480px]
+    px-5 py-3
+    rounded-xl
+    flex items-center justify-center gap-2
+    bg-red-500/15
+    border border-red-500/30
+    text-red-400
+    hover:bg-red-500/25
+    hover:text-red-300
+    active:scale-95
+    transition-all
+    duration-200
+    font-medium
+  "
+>
+  <span>↩</span>
+  <span>Logout</span>
+</button>
       </div>
     </div>
   )

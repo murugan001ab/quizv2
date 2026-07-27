@@ -84,9 +84,9 @@ export default function Sidebar() {
             <div className="truncate">{user?.email}</div>
           </div>
         </div>
-        <button className="btn btn-ghost w-full justify-start gap-2" onClick={logout}>
+        {/* <button className="btn btn-ghost w-full justify-start gap-2" onClick={logout}>
           <span>↩</span> Logout
-        </button>
+        </button> */}
       </div>
     </aside>
   )

@@ -124,7 +124,7 @@ export default function ProblemSolve() {
           <Link to="/problems" className="btn btn-ghost btn-icon shrink-0" title="Back to problems">
             ←
           </Link>
-          <div className={`min-w-0 ${mobileView === "code" ? "hidden lg:block" : ""}`}>
+          <div className={`min-w-0 `}>
             <h1 className="font-head font-bold text-white/90 truncate leading-tight text-sm sm:text-base">
               {problem.title}
             </h1>
