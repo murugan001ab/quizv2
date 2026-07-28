@@ -16,21 +16,21 @@ from app.core.security import hash_password
 
 SAMPLE_USERS = [
     {
-        "name":"arun",
-        "username": "testuser",
-        "email": "testuser@example.com",
-        "password": "Test@123",
-        "is_admin": False,
+        "name":"Malavika",
+        "username": "MalavikaZeekers",
+        "email": "malavika@zeekers.com",
+        "password": "Malavika@123",
+        "is_admin": True,
         "profile_url": None,
     },
-    {
-        "name":"krish",
-        "username": "student",
-        "email": "student@example.com",
-        "password": "Student@123",
-        "is_admin": False,
-        "profile_url": None,
-    },
+    # {
+    #     "name":"krish",
+    #     "username": "student",
+    #     "email": "student@example.com",
+    #     "password": "Student@123",
+    #     "is_admin": False,
+    #     "profile_url": None,
+    # },
 ]
 
 

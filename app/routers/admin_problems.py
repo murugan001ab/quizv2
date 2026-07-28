@@ -3,14 +3,21 @@ Admin CRUD for topics, problems, and test cases.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.core.security import get_admin_user, hash_password
 from app.models.user import User
-from app.models.problem import Topic, Problem, TestCase
+from app.models.problem import Topic, Problem, TestCase, ProblemUnlock
+from app.models.saved_code import SavedCode
+from app.models.discussion import (
+    DiscussionPost,
+    DiscussionComment,
+    DiscussionPostLike,
+    DiscussionCommentLike,
+)
 from app.schemas.problem import (
     TopicCreate,
     TopicOut,
@@ -181,6 +188,22 @@ async def delete_problem(
     problem = await db.get(Problem, problem_id)
     if not problem:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Problem not found")
+
+    # test_cases and submissions cascade via the ORM relationship on Problem,
+    # but problem_unlocks, saved_codes, and the discussion-room tables don't
+    # have cascade configured (they live in separate model modules to avoid
+    # a circular import with app.models.problem), so clear them explicitly
+    # here, in FK-safe order, before deleting the problem itself.
+    post_ids_subq = select(DiscussionPost.id).where(DiscussionPost.problem_id == problem_id)
+    comment_ids_subq = select(DiscussionComment.id).where(DiscussionComment.post_id.in_(post_ids_subq))
+
+    await db.execute(delete(DiscussionCommentLike).where(DiscussionCommentLike.comment_id.in_(comment_ids_subq)))
+    await db.execute(delete(DiscussionComment).where(DiscussionComment.post_id.in_(post_ids_subq)))
+    await db.execute(delete(DiscussionPostLike).where(DiscussionPostLike.post_id.in_(post_ids_subq)))
+    await db.execute(delete(DiscussionPost).where(DiscussionPost.problem_id == problem_id))
+    await db.execute(delete(SavedCode).where(SavedCode.problem_id == problem_id))
+    await db.execute(delete(ProblemUnlock).where(ProblemUnlock.problem_id == problem_id))
+
     await db.delete(problem)
     await db.commit()
 
