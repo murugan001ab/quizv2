@@ -80,6 +80,8 @@ def _to_admin_out(problem: Problem) -> ProblemAdminOut:
         is_locked=problem.is_locked,
         is_active=problem.is_active,
         created_at=problem.created_at,
+        allowed_languages=problem.allowed_languages,
+        default_language=problem.default_language,
         test_cases=problem.test_cases,
     )
 
@@ -97,6 +99,14 @@ async def create_problem(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid topic_id")
 
     data = body.model_dump(exclude={"test_cases", "access_password"})
+    # Store languages as plain strings (not Enum members) in the JSON/VARCHAR
+    # columns — explicit rather than relying on Language's str-subclass duck
+    # typing to serialize correctly everywhere.
+    if data.get("allowed_languages") is not None:
+        data["allowed_languages"] = [str(lang.value if hasattr(lang, "value") else lang) for lang in data["allowed_languages"]]
+    if data.get("default_language") is not None:
+        dl = data["default_language"]
+        data["default_language"] = str(dl.value if hasattr(dl, "value") else dl)
     problem = Problem(
         **data,
         created_by=admin.id,
@@ -163,6 +173,13 @@ async def update_problem(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Problem not found")
 
     data = body.model_dump(exclude_unset=True, exclude={"access_password", "clear_password"})
+    # Same normalization as create_problem: store plain strings, not Enum
+    # members, in the JSON/VARCHAR columns.
+    if "allowed_languages" in data and data["allowed_languages"] is not None:
+        data["allowed_languages"] = [str(lang.value if hasattr(lang, "value") else lang) for lang in data["allowed_languages"]]
+    if "default_language" in data and data["default_language"] is not None:
+        dl = data["default_language"]
+        data["default_language"] = str(dl.value if hasattr(dl, "value") else dl)
     for k, v in data.items():
         setattr(problem, k, v)
 

@@ -36,7 +36,9 @@ class Difficulty(str, enum.Enum):
 
 class Language(str, enum.Enum):
     PYTHON3 = "python3"
-    # add more later (cpp, java, js...) — keep in sync with judge0_client LANGUAGE_MAP
+    JAVA = "java"
+    C = "c"
+    # add more later (cpp, js...) — keep in sync with code_runner.LANGUAGE_CONFIG
 
 
 class SubmissionStatus(str, enum.Enum):
@@ -90,6 +92,19 @@ class Problem(Base):
     # Stored hashed — never plaintext. Nullable => open problem, no gate.
     access_password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
+    # Language policy for this problem:
+    #  - allowed_languages is None/empty  => every language code_runner supports
+    #    is offered, and the user picks whichever they like.
+    #  - allowed_languages has 1 entry    => admin has pinned this problem to a
+    #    single language; the picker is hidden on the frontend and that
+    #    language is forced.
+    #  - allowed_languages has 2+ entries => user picks among just those,
+    #    defaulting to default_language (falling back to the first entry).
+    # Stored as plain strings (not a DB enum) so adding a new Language member
+    # later never requires an ALTER TYPE migration.
+    allowed_languages: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
+    default_language: Mapped[str | None] = mapped_column(String(20), nullable=True)
+
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -108,6 +123,27 @@ class Problem(Base):
     @property
     def is_locked(self) -> bool:
         return self.access_password_hash is not None
+
+    @property
+    def available_languages(self) -> list[str]:
+        """Languages a user may pick for this problem. Empty/None => all of them."""
+        if self.allowed_languages:
+            return list(self.allowed_languages)
+        return [lang.value for lang in Language]
+
+    @property
+    def is_single_language(self) -> bool:
+        """True when the admin pinned this problem to exactly one language."""
+        return len(self.available_languages) == 1
+
+    @property
+    def effective_default_language(self) -> str:
+        """The language to preselect: admin's default_language if it's still
+        in the allowed set, otherwise the first allowed/available language."""
+        langs = self.available_languages
+        if self.default_language and self.default_language in langs:
+            return self.default_language
+        return langs[0]
 
 
 class TestCase(Base):

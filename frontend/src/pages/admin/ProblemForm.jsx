@@ -32,7 +32,15 @@ const emptyForm = {
   access_password: "",
   time_limit_ms: 2000,
   memory_limit_kb: 65536,
+  allowed_languages: [],
+  default_language: "",
 };
+
+const ALL_LANGUAGES = [
+  { value: "python3", label: "Python 3" },
+  { value: "java", label: "Java" },
+  { value: "c", label: "C" },
+];
 
 export default function ProblemForm() {
   const { id } = useParams(); // present when editing
@@ -66,6 +74,8 @@ export default function ProblemForm() {
             access_password: "",
             time_limit_ms: p.time_limit_ms,
             memory_limit_kb: p.memory_limit_kb,
+            allowed_languages: p.allowed_languages || [],
+            default_language: p.default_language || "",
           });
           setTestCases(
             p.test_cases.length
@@ -80,6 +90,17 @@ export default function ProblemForm() {
   }, [id]);
 
   const updateField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const toggleLanguage = (lang) =>
+    setForm((f) => {
+      const next = f.allowed_languages.includes(lang)
+        ? f.allowed_languages.filter((l) => l !== lang)
+        : [...f.allowed_languages, lang];
+      // If the default language just got unchecked, clear it so we don't
+      // submit a default that isn't in the allowed set.
+      const default_language = next.includes(f.default_language) ? f.default_language : "";
+      return { ...f, allowed_languages: next, default_language };
+    });
 
   const updateTestCase = (i, k, v) =>
     setTestCases((tcs) => tcs.map((tc, idx) => (idx === i ? { ...tc, [k]: v } : tc)));
@@ -123,6 +144,7 @@ export default function ProblemForm() {
     try {
       const payload = { ...form, topic_id: Number(form.topic_id) };
       if (!payload.access_password) delete payload.access_password;
+      payload.default_language = payload.default_language || null;
 
       if (isEdit) {
         await adminUpdateProblem(id, { ...payload, clear_password: clearPassword });
@@ -296,6 +318,44 @@ export default function ProblemForm() {
             />
             Remove password gate — make this problem open to everyone
           </label>
+        )}
+      </div>
+
+      {/* Languages */}
+      <div className="glass-panel p-6 flex flex-col gap-3 fade-up-2">
+        <h2 className="font-head font-semibold text-white/80">Languages</h2>
+        <p className="text-xs text-white/40">
+          Leave everything unchecked to let users pick any supported language. Check exactly
+          one to lock the problem to that language. Check several to offer a subset with an
+          optional default.
+        </p>
+        <div className="flex gap-4 flex-wrap">
+          {ALL_LANGUAGES.map((l) => (
+            <label key={l.value} className="flex items-center gap-2 text-sm text-white/60">
+              <input
+                type="checkbox"
+                checked={form.allowed_languages.includes(l.value)}
+                onChange={() => toggleLanguage(l.value)}
+              />
+              {l.label}
+            </label>
+          ))}
+        </div>
+        {form.allowed_languages.length > 1 && (
+          <Field label="Default language (preselected for users)">
+            <select
+              className="input"
+              value={form.default_language}
+              onChange={(e) => updateField("default_language", e.target.value)}
+            >
+              <option value="">No preference (first checked language)</option>
+              {ALL_LANGUAGES.filter((l) => form.allowed_languages.includes(l.value)).map((l) => (
+                <option key={l.value} value={l.value} className="bg-space-900">
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </Field>
         )}
       </div>
 

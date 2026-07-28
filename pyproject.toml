@@ -16,6 +16,7 @@ dependencies = [
     "websockets",
     "python-dotenv",
     "imagekitio",
+    "httpx",
 ]
 
 [build-system]

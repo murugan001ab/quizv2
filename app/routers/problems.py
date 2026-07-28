@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.core.security import get_current_user, verify_password
-from app.core import code_runner
+from app.core import code_runner_online
 from app.models.user import User
 from app.models.problem import (
     Topic,
@@ -139,6 +139,9 @@ async def get_problem(
         saved_code=saved.code if saved else None,
         saved_language=saved.language if saved else None,
         saved_at=saved.updated_at if saved else None,
+        available_languages=problem.available_languages,
+        is_single_language=problem.is_single_language,
+        effective_default_language=problem.effective_default_language,
     )
 
 
@@ -161,6 +164,8 @@ async def save_code(
         select(SavedCode).filter_by(user_id=user.id, problem_id=problem_id)
     )
     saved = existing.scalar_one_or_none()
+
+    print(body.language)
     if saved:
         saved.code = body.code
         saved.language = body.language
@@ -213,7 +218,7 @@ async def _judge(
         }
         for tc in test_cases
     ]
-    verdicts = await code_runner.run_batch(code, language, payload)
+    verdicts = await code_runner_online.run_batch(code, language, payload)
 
     results: list[TestCaseResultOut] = []
     for tc, v in zip(test_cases, verdicts):
@@ -252,6 +257,11 @@ async def run_code(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Problem not found")
     if not await _has_access(db, user, problem):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Unlock this problem first")
+    if body.language.value not in problem.available_languages:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"This problem only allows: {', '.join(problem.available_languages)}",
+        )
 
     visible_cases = [tc for tc in problem.test_cases if not tc.is_hidden]
     results, verdicts = await _judge(db, problem, body.code, body.language, visible_cases)
@@ -279,6 +289,11 @@ async def submit_code(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Problem not found")
     if not await _has_access(db, user, problem):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Unlock this problem first")
+    if body.language.value not in problem.available_languages:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"This problem only allows: {', '.join(problem.available_languages)}",
+        )
 
     all_cases = problem.test_cases
     results, verdicts = await _judge(db, problem, body.code, body.language, all_cases)
@@ -289,11 +304,11 @@ async def submit_code(
 
     if passed_count == len(verdicts):
         status_ = SubmissionStatus.ACCEPTED
-    elif any(v.status_id in code_runner.COMPILE_ERROR_RANGE for v in verdicts):
+    elif any(v.status_id in code_runner_online.COMPILE_ERROR_RANGE for v in verdicts):
         status_ = SubmissionStatus.COMPILE_ERROR
-    elif any(v.status_id in code_runner.RUNTIME_ERROR_RANGE for v in verdicts):
+    elif any(v.status_id in code_runner_online.RUNTIME_ERROR_RANGE for v in verdicts):
         status_ = SubmissionStatus.RUNTIME_ERROR
-    elif any(v.status_id == code_runner.STATUS_TIME_LIMIT_EXCEEDED for v in verdicts):
+    elif any(v.status_id == code_runner_online.STATUS_TIME_LIMIT_EXCEEDED for v in verdicts):
         status_ = SubmissionStatus.TIME_LIMIT_EXCEEDED
     else:
         status_ = SubmissionStatus.WRONG_ANSWER

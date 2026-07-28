@@ -7,10 +7,17 @@ import { DiffBadge, Spinner } from "../../components/Shared";
 import { useKeyboardOpen } from "../../hooks/useKeyboardOffset";
 import { getProblem, unlockProblem, runCode, submitCode, saveCode } from "../../api/problems";
 
+const LANGUAGE_LABELS = {
+  python3: "Python 3",
+  java: "Java",
+  c: "C",
+};
+
 export default function ProblemSolve() {
   const { id } = useParams();
   const [problem, setProblem] = useState(null);
   const [code, setCode] = useState("");
+  const [language, setLanguage] = useState("python3");
   const [password, setPassword] = useState("");
   const [unlockError, setUnlockError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -28,6 +35,9 @@ export default function ProblemSolve() {
   const load = () => {
     getProblem(id).then((p) => {
       setProblem(p);
+      // Prefer whatever the user last saved code+language for, otherwise
+      // fall back to the problem's effective default language.
+      setLanguage(p.saved_language || p.effective_default_language);
       setCode(p.saved_code || p.starter_code || "# write your solution here\n");
     });
   };
@@ -57,7 +67,7 @@ export default function ProblemSolve() {
     setTab("results");
     setMobileView("problem");
     try {
-      const r = await runCode(id, code);
+      const r = await runCode(id, code, language);
       setResult({ kind: "run", ...r });
     } finally {
       setBusy(false);
@@ -67,7 +77,7 @@ export default function ProblemSolve() {
   const handleSave = async () => {
     setSaveStatus("saving");
     try {
-      await saveCode(id, code);
+      await saveCode(id, code, language);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 1800);
     } catch {
@@ -82,7 +92,7 @@ export default function ProblemSolve() {
     setTab("results");
     setMobileView("problem");
     try {
-      const r = await submitCode(id, code);
+      const r = await submitCode(id, code, language);
       setResult({ kind: "submit", ...r });
       if (r.status === "accepted") {
         setProblem((p) => (p ? { ...p, solved: true } : p));
@@ -175,6 +185,22 @@ export default function ProblemSolve() {
           they're reachable the instant you're done typing — no need to
           scroll (or fight the on-screen keyboard) to reach them at the
           bottom of the editor. */}
+      {mobileView === "code" && !problem.is_single_language && (
+        <div className="lg:hidden flex items-center gap-2 px-3 pt-3 shrink-0">
+          <select
+            className="input w-auto py-1.5 text-sm"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+          >
+            {problem.available_languages.map((l) => (
+              <option key={l} value={l} className="bg-space-900">
+                {LANGUAGE_LABELS[l] || l}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {mobileView === "code" && (
         <div className="lg:hidden flex items-center gap-2 px-3 pt-3 shrink-0">
           <button
@@ -275,8 +301,24 @@ export default function ProblemSolve() {
 
         {/* Right: editor + actions */}
         <div className={`flex-col min-h-0 gap-3 ${mobileView === "code" ? "flex" : "hidden"} lg:flex`}>
+          {!problem.is_single_language && (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-white/40 uppercase tracking-wide">Language</span>
+              <select
+                className="input w-auto py-1.5 text-sm"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+              >
+                {problem.available_languages.map((l) => (
+                  <option key={l} value={l} className="bg-space-900">
+                    {LANGUAGE_LABELS[l] || l}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className={`flex-1 min-h-0 ${keyboardOpen ? "pb-24" : ""}`}>
-            <CodeEditor ref={editorRef} value={code} onChange={setCode} />
+            <CodeEditor ref={editorRef} value={code} onChange={setCode} language={language} />
           </div>
 
           <MobileCodeToolbar editorRef={editorRef} />

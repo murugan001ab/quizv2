@@ -43,3 +43,23 @@ async def init_db():
         await conn.execute(text(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_url VARCHAR"
         ))
+        # Per-problem language policy (see app/models/problem.py::Problem for
+        # the allowed_languages / default_language semantics). Plain JSON +
+        # VARCHAR, not a DB enum, so new Language members never need an
+        # ALTER TYPE migration.
+        await conn.execute(text(
+            "ALTER TABLE problems ADD COLUMN IF NOT EXISTS allowed_languages JSON"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE problems ADD COLUMN IF NOT EXISTS default_language VARCHAR(20)"
+        ))
+        # submissions.language / saved_codes.language use a native Postgres
+        # enum type (named after the Python class, lowercased: "language").
+        # create_all() never alters an existing type, so new Language members
+        # (java, c) need to be added to it explicitly for anyone upgrading.
+        await conn.execute(text(
+            "ALTER TYPE language ADD VALUE IF NOT EXISTS 'java'"
+        ))
+        await conn.execute(text(
+            "ALTER TYPE language ADD VALUE IF NOT EXISTS 'c'"
+        ))

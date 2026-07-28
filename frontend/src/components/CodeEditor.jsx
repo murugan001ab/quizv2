@@ -4,6 +4,18 @@ import Editor from "@monaco-editor/react";
 const LANGUAGE_LABELS = {
   python: "Python 3",
   python3: "Python 3",
+  java: "Java",
+  c: "C",
+};
+
+// Our Language enum values ("python3", "java", "c") don't always match
+// Monaco's own language ids ("python", "java", "c") — map through this
+// before handing the value to the <Editor language=... /> prop.
+const MONACO_LANGUAGE_IDS = {
+  python3: "python",
+  python: "python",
+  java: "java",
+  c: "c",
 };
 
 // Snippets available to both the imperative API (used by the mobile extra-keys
@@ -116,7 +128,7 @@ const CodeEditor = forwardRef(function CodeEditor(
       <div className="flex-1 min-h-0">
         <Editor
           height={height}
-          language={language}
+          language={MONACO_LANGUAGE_IDS[language] || language}
           theme="vs-dark"
           value={value}
           onChange={(v) => onChange?.(v ?? "")}
