@@ -18,6 +18,9 @@ export const runCode = (id, code, language = "python3") =>
 export const submitCode = (id, code, language = "python3") =>
   api.post(`/problems/${id}/submit`, { code, language }).then((r) => r.data);
 
+export const saveCode = (id, code, language = "python3") =>
+  api.put(`/problems/${id}/save`, { code, language }).then((r) => r.data);
+
 export const mySubmissions = (id) =>
   api.get(`/problems/${id}/submissions`).then((r) => r.data);
 

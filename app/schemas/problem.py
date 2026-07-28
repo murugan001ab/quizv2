@@ -114,6 +114,9 @@ class ProblemDetailOut(BaseModel):
     is_locked: bool
     visible_test_cases: list[TestCasePublicOut]
     solved: bool = False
+    saved_code: str | None = None
+    saved_language: Language | None = None
+    saved_at: datetime | None = None
 
 
 class ProblemAdminOut(BaseModel):
@@ -137,6 +140,18 @@ class ProblemAdminOut(BaseModel):
 
 class UnlockRequest(BaseModel):
     password: str
+
+
+# ---------- Saved code (per user, per problem) ----------
+class SaveCodeRequest(BaseModel):
+    code: str
+    language: Language = Language.PYTHON3
+
+
+class SavedCodeOut(BaseModel):
+    code: str
+    language: Language
+    saved_at: datetime
 
 
 # ---------- Run / Submit ----------

@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import CodeEditor from "../../components/CodeEditor";
 import MobileCodeToolbar from "../../components/MobileCodeToolbar";
+import DiscussionRoom from "../../components/DiscussionRoom";
 import { DiffBadge, Spinner } from "../../components/Shared";
 import { useKeyboardOpen } from "../../hooks/useKeyboardOffset";
-import { getProblem, unlockProblem, runCode, submitCode } from "../../api/problems";
+import { getProblem, unlockProblem, runCode, submitCode, saveCode } from "../../api/problems";
 
 export default function ProblemSolve() {
   const { id } = useParams();
@@ -13,6 +14,7 @@ export default function ProblemSolve() {
   const [password, setPassword] = useState("");
   const [unlockError, setUnlockError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving | saved | error
   const [result, setResult] = useState(null); // run result or submit result
   const [tab, setTab] = useState("description");
   // Mobile only: the split view collapses to one column at a time, this
@@ -26,7 +28,7 @@ export default function ProblemSolve() {
   const load = () => {
     getProblem(id).then((p) => {
       setProblem(p);
-      setCode(p.starter_code || "# write your solution here\n");
+      setCode(p.saved_code || p.starter_code || "# write your solution here\n");
     });
   };
 
@@ -59,6 +61,18 @@ export default function ProblemSolve() {
       setResult({ kind: "run", ...r });
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaveStatus("saving");
+    try {
+      await saveCode(id, code);
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 1800);
+    } catch {
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus((s) => (s === "error" ? "idle" : s)), 2200);
     }
   };
 
@@ -170,6 +184,14 @@ export default function ProblemSolve() {
           >
             ↺
           </button>
+          <button
+            onClick={handleSave}
+            disabled={saveStatus === "saving"}
+            className="btn btn-ghost btn-icon shrink-0"
+            title="Save code"
+          >
+            {saveStatus === "saving" ? <Spinner sm /> : saveStatus === "saved" ? "✓" : "💾"}
+          </button>
           <button onClick={handleRun} disabled={busy} className="btn btn-ghost flex-1">
             {busy ? <Spinner sm /> : "▶"} Run
           </button>
@@ -183,12 +205,17 @@ export default function ProblemSolve() {
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4">
         {/* Left: description / test cases / results */}
         <div className={`glass-panel flex-col min-h-0 overflow-hidden ${mobileView === "problem" ? "flex" : "hidden"} lg:flex`}>
-          <div className="flex gap-1.5 px-4 pt-4 shrink-0">
-            {["description", "testcases", "results"].map((t) => (
+          <div className="flex gap-1.5 px-4 pt-4 shrink-0 overflow-x-auto">
+            {[
+              "description",
+              "testcases",
+              "results",
+              ...(problem.solved ? ["discussion"] : []),
+            ].map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`px-3.5 py-2 rounded-2xl text-sm font-medium capitalize transition-all duration-200
+                className={`px-3.5 py-2 rounded-2xl text-sm font-medium capitalize transition-all duration-200 shrink-0
                   ${tab === t
                     ? "bg-white/[0.09] text-white border border-white/10 shadow-inner-glass"
                     : "text-white/40 hover:text-white/70 border border-transparent"}`}
@@ -241,6 +268,8 @@ export default function ProblemSolve() {
             )}
 
             {tab === "results" && <ResultsPanel result={result} busy={busy} />}
+
+            {tab === "discussion" && problem.solved && <DiscussionRoom problemId={problem.id} />}
           </div>
         </div>
 
@@ -254,14 +283,30 @@ export default function ProblemSolve() {
 
           {/* Desktop only — mobile gets the compact bar under the tabs above */}
           <div className="hidden lg:flex glass-panel px-4 py-3 items-center justify-between shrink-0">
-            <button
-              onClick={() => setCode(problem.starter_code || "")}
-              className="btn btn-ghost btn-sm"
-              title="Reset to starter code"
-            >
-              ↺ Reset
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCode(problem.starter_code || "")}
+                className="btn btn-ghost btn-sm"
+                title="Reset to starter code"
+              >
+                ↺ Reset
+              </button>
+              {saveStatus === "saved" && (
+                <span className="text-xs text-emerald-300">Saved</span>
+              )}
+              {saveStatus === "error" && (
+                <span className="text-xs text-rose-300">Save failed</span>
+              )}
+            </div>
             <div className="flex gap-2">
+              <button
+                onClick={handleSave}
+                disabled={saveStatus === "saving"}
+                className="btn btn-ghost"
+                title="Save code"
+              >
+                {saveStatus === "saving" ? <Spinner sm /> : "💾"} Save
+              </button>
               <button onClick={handleRun} disabled={busy} className="btn btn-ghost">
                 {busy ? <Spinner sm /> : "▶"} Run
               </button>

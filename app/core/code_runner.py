@@ -5,6 +5,14 @@ subprocess: stdin is piped in, stdout/stderr captured, with a wall-clock
 timeout and (on POSIX) an address-space rlimit standing in for Judge0's
 cpu/memory limits.
 
+The subprocess itself is spawned with the synchronous `subprocess` module
+on a worker thread (via asyncio.to_thread), not asyncio's native
+create_subprocess_exec. This is deliberate: on Windows, asyncio subprocess
+support only works under ProactorEventLoop, and uvicorn doesn't guarantee
+that loop is active (it sets its own event loop policy at startup). Using
+plain `subprocess` sidesteps that entirely and behaves the same on every
+platform/event loop.
+
 Kept the same public surface as the old judge0_client.py (`run_batch`,
 `Judge0Verdict`, the STATUS_* / *_RANGE constants) so app/routers/problems.py
 only needed an import rename, not a rewrite.
@@ -20,6 +28,7 @@ rootfs, firejail/bubblewrap, nsjail, etc.) or bring back an isolated judge.
 
 import asyncio
 import os
+import subprocess
 import sys
 import tempfile
 import time
@@ -82,6 +91,36 @@ def _memory_limit_preexec(memory_limit_kb: int):
     return _apply
 
 
+def _run_subprocess_sync(
+    script_path: str, stdin_data: str, time_limit_s: float, memory_limit_kb: int
+):
+    """
+    Runs the judged process synchronously via the plain `subprocess` module.
+    Called through asyncio.to_thread() so it works identically no matter
+    which asyncio event loop the server is running — this sidesteps the
+    Windows gotcha where asyncio.create_subprocess_exec() only works under
+    ProactorEventLoop, and uvicorn doesn't guarantee that loop on Windows
+    (it sets its own policy at startup, after the app module is imported,
+    so setting the policy from our side doesn't reliably stick).
+
+    Returns (returncode, stdout_bytes, stderr_bytes, timed_out).
+    """
+    preexec = _memory_limit_preexec(memory_limit_kb)
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-I", script_path],
+            input=stdin_data.encode(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=time_limit_s,
+            preexec_fn=preexec,
+        )
+        return completed.returncode, completed.stdout, completed.stderr, False
+    except subprocess.TimeoutExpired as e:
+        # subprocess.run() already kills the process for us on timeout.
+        return None, e.stdout or b"", e.stderr or b"", True
+
+
 async def _run_one(
     code: str,
     stdin_data: str,
@@ -98,24 +137,11 @@ async def _run_one(
     async with _sem:
         try:
             start = time.monotonic()
-            proc = await asyncio.create_subprocess_exec(
-                sys.executable,
-                "-I",  # isolated mode: ignore env/user site-packages
-                script_path,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                preexec_fn=_memory_limit_preexec(memory_limit_kb),
+            returncode, stdout_b, stderr_b, timed_out = await asyncio.to_thread(
+                _run_subprocess_sync, script_path, stdin_data, time_limit_s, memory_limit_kb
             )
 
-            try:
-                stdout_b, stderr_b = await asyncio.wait_for(
-                    proc.communicate(input=stdin_data.encode()),
-                    timeout=time_limit_s,
-                )
-            except asyncio.TimeoutError:
-                proc.kill()
-                await proc.wait()
+            if timed_out:
                 return Judge0Verdict(
                     passed=False,
                     stdout="",
@@ -129,7 +155,7 @@ async def _run_one(
             stdout = stdout_b.decode(errors="replace")
             stderr = stderr_b.decode(errors="replace")
 
-            if proc.returncode != 0:
+            if returncode != 0:
                 is_compile_error = any(m in stderr for m in _COMPILE_ERROR_MARKERS)
                 return Judge0Verdict(
                     passed=False,

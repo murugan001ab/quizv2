@@ -20,10 +20,13 @@ from app.models.problem import (
     ProblemUnlock,
     SubmissionStatus,
 )
+from app.models.saved_code import SavedCode
 from app.schemas.problem import (
     ProblemListItem,
     ProblemDetailOut,
     UnlockRequest,
+    SaveCodeRequest,
+    SavedCodeOut,
     RunRequest,
     SubmitRequest,
     RunResultOut,
@@ -112,6 +115,13 @@ async def get_problem(
     visible = [tc for tc in problem.test_cases if not tc.is_hidden] if unlocked else []
     solved_ids = await _solved_problem_ids(db, user)
 
+    saved = None
+    if unlocked:
+        saved_result = await db.execute(
+            select(SavedCode).filter_by(user_id=user.id, problem_id=problem.id)
+        )
+        saved = saved_result.scalar_one_or_none()
+
     return ProblemDetailOut(
         id=problem.id,
         title=problem.title,
@@ -126,7 +136,43 @@ async def get_problem(
         is_locked=problem.is_locked and not unlocked,
         visible_test_cases=visible,
         solved=problem.id in solved_ids,
+        saved_code=saved.code if saved else None,
+        saved_language=saved.language if saved else None,
+        saved_at=saved.updated_at if saved else None,
     )
+
+
+@router.put("/{problem_id}/save", response_model=SavedCodeOut)
+async def save_code(
+    problem_id: int,
+    body: SaveCodeRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Upserts the user's saved code for this problem (one slot per user/problem)."""
+    result = await db.execute(select(Problem).where(Problem.id == problem_id))
+    problem = result.scalar_one_or_none()
+    if not problem or not problem.is_active:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Problem not found")
+    if not await _has_access(db, user, problem):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Unlock this problem first")
+
+    existing = await db.execute(
+        select(SavedCode).filter_by(user_id=user.id, problem_id=problem_id)
+    )
+    saved = existing.scalar_one_or_none()
+    if saved:
+        saved.code = body.code
+        saved.language = body.language
+    else:
+        saved = SavedCode(
+            user_id=user.id, problem_id=problem_id, code=body.code, language=body.language
+        )
+        db.add(saved)
+    await db.commit()
+    await db.refresh(saved)
+
+    return SavedCodeOut(code=saved.code, language=saved.language, saved_at=saved.updated_at)
 
 
 @router.post("/{problem_id}/unlock")
