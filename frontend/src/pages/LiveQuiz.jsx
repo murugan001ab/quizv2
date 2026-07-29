@@ -88,7 +88,7 @@ function JoinForm({ onJoin }) {
           <label className="input-label">Password (if the host set one)</label>
           <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} />
         </div>
-        <button className="btn btn-primary w-full" disabled={!code} onClick={() => onJoin(code, password)}>
+        <button className="btn btn-primary w-full" disabled={!code.trim()} onClick={() => onJoin(code.trim(), password)}>
           Join live quiz
         </button>
       </div>

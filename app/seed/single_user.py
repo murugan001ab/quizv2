@@ -17,10 +17,10 @@ from app.core.security import hash_password
 SAMPLE_USERS = [
     
     {
-        "name": "sruthi ",
-        "username": "sruthi13082006",
-        "email": "sruthii@gmail.com",
-        "password": "sruthi@123",
+        "name": "vishnu ",
+        "username": "user4",
+        "email": "user4@gmail.com",
+        "password": "123",
         "is_admin": False,
         "profile_url": None,
     },

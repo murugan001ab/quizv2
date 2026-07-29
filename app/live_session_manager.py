@@ -17,7 +17,10 @@ from typing import Dict, List, Optional
 
 from fastapi import WebSocket
 
-CODE_ALPHABET = string.ascii_uppercase + string.digits
+# Excludes visually-ambiguous characters (0/O, 1/I/L) so a code shown on
+# one screen and typed on another isn't misread -- this was causing
+# legitimate "Channel not found" errors on manual code entry.
+CODE_ALPHABET = "".join(c for c in string.ascii_uppercase + string.digits if c not in "0O1IL")
 
 
 def _gen_code(n: int = 6) -> str:
@@ -147,10 +150,10 @@ class LiveChannelStore:
         return channel
 
     def get(self, code: str) -> Optional[LiveChannel]:
-        return self.channels.get((code or "").upper())
+        return self.channels.get((code or "").strip().upper())
 
     def remove(self, code: str):
-        self.channels.pop((code or "").upper(), None)
+        self.channels.pop((code or "").strip().upper(), None)
 
     def list_public(self):
         return [
