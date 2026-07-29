@@ -24,7 +24,12 @@ function MyChannelsPanel({ token,link, userId, toast, onRejoined,onCopy, refresh
     api.listLiveChannels(token)
       .then(list => {
         if (cancelled) return
-        setChannels(list.filter(c => c.admin_user_id === userId && c.state !== 'finished'))
+        // Include 'finished' channels too -- a channel stays finished for
+        // the entire post-quiz explain walkthrough, and the admin needs a
+        // way back in if they reload mid-walkthrough. The channel is only
+        // truly gone once they explicitly close it (which removes it from
+        // the store entirely, so it won't show up here regardless).
+        setChannels(list.filter(c => c.admin_user_id === userId))
       })
       .catch(() => { /* silent — this panel is a convenience, not critical path */ })
       .finally(() => !cancelled && setLoading(false))

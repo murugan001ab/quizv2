@@ -8,7 +8,6 @@ Auth on the WebSocket reuses the same JWT scheme as /ws/admin: the access
 token is passed as a query param since browsers can't set custom headers
 on a WebSocket handshake.
 """
-import time as _time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -200,39 +199,38 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...),link:
 
         existing = channel.participants.get(user.id)
         if existing is not None:
-            # Ping the old socket to see if it's actually still alive. A
-            # genuine second tab gets rejected as before; a stale connection
-            # (crash, dropped wifi, refresh that skipped WebSocketDisconnect)
-            # gets evicted so the admin -- or anyone -- can reclaim their seat
-            # instead of being permanently locked out of their own channel.
-            try:
-                await existing.ws.send_json({"type": "ping"})
-                stale = False
-            except Exception:
-                stale = True
-
-            if not stale:
-                await _safe_send(
-                    websocket, {"type": "error", "message": "You're already connected in another tab"}
-                )
-                await _safe_close(websocket)
-                return
-
+            # A new connection that already passed token + password auth for
+            # this user is trusted as a legitimate reconnect (reload, tab
+            # refresh, dropped wifi) -- always evict the old socket rather
+            # than trying to probe whether it's "actually" still alive. That
+            # probe (send a ping, see if it throws) is unreliable: a
+            # half-closed TCP socket can still accept writes for a while, so
+            # it was sometimes rejecting genuine reloads as "already
+            # connected in another tab" -- which, worse, could also skip the
+            # score handoff below and reset the user back to 0.
             try:
                 await existing.ws.close()
             except Exception:
                 pass
             channel.participants.pop(user.id, None)
 
-        # Reconnecting participants keep their running score instead of
-        # restarting at 0.
-        prior_score = existing.score if existing is not None else 0
+        # Score (and which questions have already been answered) is tracked
+        # on the channel itself, independent of the Participant/WebSocket
+        # object, so a reload never loses progress -- regardless of exactly
+        # when the old connection's disconnect is detected relative to the
+        # new one connecting.
+        prior_score = channel.scores.get(user.id, existing.score if existing is not None else 0)
+        channel.scores[user.id] = prior_score
+        answered_current = (
+            channel.current_question_index in channel.answered_questions.get(user.id, set())
+        )
         participant = Participant(
             user_id=user.id,
             username=user.username,
             ws=websocket,
             is_admin=is_admin,
             score=prior_score,
+            answered_current=answered_current,
         )
         channel.participants[user.id] = participant
 
@@ -326,15 +324,15 @@ async def live_ws(websocket: WebSocket, code: str, token: str = Query(...),link:
                 if not isinstance(option_index, int) or not (0 <= option_index < len(question.options)):
                     continue
                 participant.answered_current = True
+                channel.answered_questions.setdefault(user.id, set()).add(channel.current_question_index)
                 counts = channel.answer_counts.setdefault(
                     channel.current_question_index, [0] * len(question.options)
                 )
                 counts[option_index] += 1
                 is_correct = option_index == question.correct_option
                 if is_correct:
-                    elapsed = _time.time() - channel.current_question_started_at
-                    speed_bonus = max(0.0, question.time_limit - elapsed)
-                    participant.score += 100 + int(speed_bonus * 5)
+                    participant.score += 1
+                    channel.scores[user.id] = participant.score
                 await _safe_send(websocket, {"type": "answer_ack", "correct": is_correct})
 
             elif mtype == "start_explain":

@@ -22,6 +22,8 @@ from app.core.code_runner import (
     STATUS_ACCEPTED,
     STATUS_WRONG_ANSWER,
     STATUS_TIME_LIMIT_EXCEEDED,
+    COMPILE_ERROR_RANGE,
+    RUNTIME_ERROR_RANGE,
     Judge0Verdict,
 )
 from app.models.problem import Language

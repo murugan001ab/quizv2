@@ -63,6 +63,14 @@ class LiveChannel:
     answer_counts: Dict[int, List[int]] = field(default_factory=dict)
     # -1 until the admin starts the explanation walkthrough after the quiz ends
     explain_index: int = -1
+    # Persisted independently of the live Participant/WebSocket object so a
+    # reload (which tears down and recreates the Participant) never loses a
+    # user's running total. Keyed by user_id.
+    scores: Dict[int, int] = field(default_factory=dict)
+    # user_id -> set of question indices they've already answered. Also kept
+    # independent of Participant so a mid-question reload can't be used to
+    # (accidentally or otherwise) answer the same question twice.
+    answered_questions: Dict[int, set] = field(default_factory=dict)
 
     def check_password(self, password: Optional[str]) -> bool:
         if not self.password:
