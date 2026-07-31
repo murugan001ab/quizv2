@@ -26,6 +26,7 @@ import AdminUsers from './pages/admin/AdminUsers'
 import AdminLive from './pages/admin/AdminLive'
 import AdminProblems from './pages/admin/AdminProblems'
 import ProblemForm from './pages/admin/ProblemForm'
+import Register from './pages/Register'
 
 function AppShell({ children }) {
   return (
@@ -98,7 +99,10 @@ export default function App() {
               path="/login"
               element={<Login />}
             />
-
+            <Route
+              path="/register"
+              element={<Register/>}
+              />
 
             {/* ================= USER ================= */}
 

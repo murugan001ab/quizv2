@@ -25,180 +25,240 @@ def now_ist():
 
 async def seed_part1_concepts(db):
     quiz = Quiz(
-        title="C Programming - Part 1 Concepts",
-        description="Introduction to Programming, Algorithm, Flowchart, Structure of C Program, Header Files, main(), Variables, Data Types",
+        title="Embedded Systems & IoT - Part 1 Concepts",
+        description="MCQs covering Embedded Systems fundamentals, ESP32 specifications, pins, basic Arduino functions, and sensors.",
         difficulty=DifficultyLevel.easy,
-        subject="Programming",
-        topic="Introduction to C",
+        subject="Embedded Systems & IoT",
+        topic="ESP32 Basics and Sensors",
         quiz_type=QuizType.live.value,
         is_active=True,
     )
 
     quiz.questions.extend([
         Question(
-            text="Which best describes programming?",
+            text="What is an embedded system?",
             options=[
-                "Repairing computer hardware",
-                "Giving step-by-step instructions to a computer",
-                "Installing operating systems",
-                "Typing very fast"
+                "A computer used only for gaming",
+                "A combination of hardware and software designed for a specific function",
+                "A web application",
+                "A database system"
             ],
             correct_option=1,
-            explanation="Programming is the process of giving instructions to a computer to perform tasks."
+            explanation="An embedded system integrates dedicated hardware and software to perform a specific dedicated task."
         ),
         Question(
-            text="Why do computers need programming?",
+            text="What is the main difference between a microcontroller and a microprocessor?",
             options=[
-                "They can think like humans",
-                "They automatically know every task",
-                "They only follow instructions given by programmers",
-                "To increase RAM"
+                "Microcontrollers only contain a CPU",
+                "Microcontrollers integrate CPU, memory and I/O on a single chip",
+                "Microprocessors always consume less power",
+                "Microprocessors cannot run programs"
             ],
-            correct_option=2,
-            explanation="A computer only follows instructions written by programmers."
+            correct_option=1,
+            explanation="Microcontrollers integrate processor core, memory, and programmable peripherals onto a single integrated circuit."
         ),
         Question(
-            text="Which of the following is an algorithm?",
+            text="What is the maximum CPU clock speed mentioned for the ESP32?",
+            options=["80 MHz", "120 MHz", "240 MHz", "480 MHz"],
+            correct_option=2,
+            explanation="The ESP32 dual-core CPU can run up to 240 MHz."
+        ),
+        Question(
+            text="Which wireless technologies are built into the ESP32?",
             options=[
-                "A recipe for making tea",
-                "A movie",
-                "A keyboard",
-                "A compiler"
+                "Wi-Fi and Bluetooth",
+                "Zigbee and GSM",
+                "Ethernet and GSM",
+                "NFC and Ethernet"
             ],
             correct_option=0,
-            explanation="A recipe is a step-by-step procedure, just like an algorithm."
+            explanation="ESP32 natively integrates both Wi-Fi and Bluetooth (including BLE)."
         ),
         Question(
-            text="An algorithm should always be",
+            text="What is the typical operating voltage of the ESP32?",
+            options=["1.2 V", "3.3 V", "5 V", "12 V"],
+            correct_option=1,
+            explanation="The standard operating voltage range for ESP32 ICs is around 3.3V."
+        ),
+        Question(
+            text="How many bits is the ESP32 ADC?",
+            options=["8-bit", "10-bit", "12-bit", "16-bit"],
+            correct_option=2,
+            explanation="ESP32 features 12-bit Successive Approximation Register (SAR) ADCs."
+        ),
+        Question(
+            text="Which communication protocol is NOT listed as an ESP32 communication interface in the PPT?",
+            options=["UART", "SPI", "I²C", "HDMI"],
+            correct_option=3,
+            explanation="HDMI is a display protocol, not a standard embedded communication peripheral like UART, SPI, or I2C."
+        ),
+        Question(
+            text="Which Arduino function runs once when the ESP32 starts?",
+            options=["loop()", "setup()", "start()", "mainLoop()"],
+            correct_option=1,
+            explanation="setup() runs once when the board powers up or resets."
+        ),
+        Question(
+            text="What is the purpose of pinMode(led, OUTPUT)?",
             options=[
-                "Random",
-                "Step-by-step",
-                "Very long",
-                "Written only in English"
+                "To read the LED value",
+                "To configure the LED pin as an output",
+                "To turn the LED ON",
+                "To turn the LED OFF"
             ],
             correct_option=1,
-            explanation="Algorithms solve problems using a clear sequence of steps."
+            explanation="pinMode() configures the specified pin to behave as an INPUT or OUTPUT."
         ),
         Question(
-            text="Which comes before writing a program?",
-            options=[
-                "Algorithm",
-                "Compiler",
-                "Execution",
-                "Output"
-            ],
+            text="Which function is used to turn a digital output HIGH or LOW?",
+            options=["digitalWrite()", "digitalRead()", "analogRead()", "pinMode()"],
             correct_option=0,
-            explanation="Planning using an algorithm helps before coding."
+            explanation="digitalWrite() drives a digital pin HIGH (3.3V/5V) or LOW (0V)."
         ),
         Question(
-            text="What is the main purpose of a flowchart?",
-            options=[
-                "Increase program speed",
-                "Visualize program logic",
-                "Store variables",
-                "Compile programs"
-            ],
+            text="Consider: digitalWrite(19, HIGH); delay(1000); digitalWrite(19, LOW); delay(1000); Approximately how long is one complete ON-OFF cycle?",
+            options=["1 second", "2 seconds", "500 ms", "1000 seconds"],
             correct_option=1,
-            explanation="Flowcharts graphically represent the logic of a program."
+            explanation="1000 ms ON + 1000 ms OFF = 2000 ms total, which equals 2 seconds."
         ),
         Question(
-            text="Which symbol usually represents a decision in a flowchart?",
+            text="What does the DHT11 sensor measure?",
             options=[
-                "Rectangle",
-                "Circle",
-                "Diamond",
-                "Arrow"
+                "Distance and speed",
+                "Gas concentration and voltage",
+                "Temperature and humidity",
+                "Light intensity and pressure"
             ],
             correct_option=2,
-            explanation="A diamond represents a decision or condition."
+            explanation="DHT11 is a digital temperature and humidity sensor."
         ),
         Question(
-            text="Which section is mandatory in every C program?",
+            text="Which statement correctly compares the IR and ultrasonic sensors shown in the PPT?",
             options=[
-                "scanf()",
-                "printf()",
-                "main()",
-                "switch"
+                "Both measure temperature",
+                "IR uses infrared radiation, while ultrasonic uses sound waves",
+                "IR uses sound waves, while ultrasonic uses infrared radiation",
+                "Both require an analog input"
+            ],
+            correct_option=1,
+            explanation="IR sensors transmit/detect infrared light waves, whereas Ultrasonic sensors transmit high-frequency sound waves."
+        ),
+        Question(
+            text="Which sensor is the most appropriate for automatically turning on a fan when the room temperature becomes high?",
+            options=["IR sensor", "Ultrasonic sensor", "DHT11", "Voltage sensor"],
+            correct_option=2,
+            explanation="The DHT11 measures temperature, making it suitable for temperature-controlled automation."
+        ),
+        Question(
+            text="Which combination is correctly matched?",
+            options=[
+                "DHT11 -> Distance",
+                "Ultrasonic -> Gas concentration",
+                "Gas sensor -> Gas presence/concentration",
+                "Relay -> Temperature measurement"
             ],
             correct_option=2,
-            explanation="Every C program starts execution from main()."
+            explanation="Gas sensors evaluate chemical species/gases in the environment."
         ),
         Question(
-            text="What is the purpose of header files?",
+            text="What is the key reason a relay is useful in an IoT automation system?",
             options=[
-                "Store variables",
-                "Provide declarations of predefined functions",
-                "Increase memory",
-                "Execute the program"
+                "It directly measures electrical current",
+                "It allows a low-voltage controller signal to control a higher-power load",
+                "It provides Wi-Fi connectivity",
+                "It converts analog signals into digital signals"
             ],
             correct_option=1,
-            explanation="Header files provide declarations for library functions."
+            explanation="Relays act as electrically operated switches to control AC or high DC current circuits using low power GPIO signals."
         ),
         Question(
-            text="Which header file is required for printf() and scanf()?",
+            text="If a Blynk switch sends 1 through V2, what happens in the given program?",
             options=[
-                "math.h",
-                "stdio.h",
-                "string.h",
-                "stdlib.h"
-            ],
-            correct_option=1,
-            explanation="stdio.h contains standard input and output functions."
-        ),
-        Question(
-            text="Why is main() called the entry point?",
-            options=[
-                "It prints output",
-                "Program execution begins there",
-                "It stores variables",
-                "It creates header files"
-            ],
-            correct_option=1,
-            explanation="The operating system starts executing a C program from main()."
-        ),
-        Question(
-            text="A variable is used to",
-            options=[
-                "Repeat loops",
-                "Store data",
-                "Create flowcharts",
-                "Compile code"
-            ],
-            correct_option=1,
-            explanation="Variables store values that can be used and modified."
-        ),
-        Question(
-            text="Which of the following is a valid variable declaration?",
-            options=[
-                "int age;",
-                "int 2age;",
-                "int for;",
-                "int float;"
-            ],
-            correct_option=0,
-            explanation="Variable names cannot begin with numbers or use keywords."
-        ),
-        Question(
-            text="Which data type stores whole numbers?",
-            options=[
-                "float",
-                "char",
-                "int",
-                "double"
+                "LED is turned OFF",
+                "LED pin is configured as INPUT",
+                "LED is driven HIGH",
+                "ESP32 disconnects from Wi-Fi"
             ],
             correct_option=2,
-            explanation="int stores integer values."
+            explanation="Receiving a '1' logic high from Blynk drives the connected pin HIGH."
         ),
         Question(
-            text="Which data type is suitable for storing a single character?",
+            text="Which GPIO pin is most commonly connected to the onboard/built-in LED on standard ESP32 development boards?",
+            options=["GPIO 0", "GPIO 2", "GPIO 13", "GPIO 16"],
+            correct_option=1,
+            explanation="GPIO 2 is tied to the built-in blue LED on most standard ESP32 boards (like NodeMCU-32S)."
+        ),
+        Question(
+            text="A student uses Serial.begin(115200) in the Wi-Fi example. What is the primary purpose of this statement?",
             options=[
-                "char",
-                "int",
-                "float",
-                "string"
+                "Set the Wi-Fi frequency",
+                "Set the Serial communication baud rate",
+                "Set the ADC resolution",
+                "Set the CPU clock speed"
             ],
-            correct_option=0,
-            explanation="char stores a single character such as 'A'."
+            correct_option=1,
+            explanation="Serial.begin() initializes serial transmission and sets the communication speed in baud (bits per second)."
+        ),
+        Question(
+            text="If the Serial Monitor baud rate does not match the baud rate used in Serial.begin(), what is the most likely problem?",
+            options=[
+                "The ESP32 hardware will be permanently damaged",
+                "The displayed serial output may appear corrupted or unreadable",
+                "The sensor will automatically stop measuring",
+                "The relay will always remain ON"
+            ],
+            correct_option=1,
+            explanation="Mismatched baud rates prevent proper UART clock synchronization, leading to garbage/unreadable output."
+        ),
+        Question(
+            text="What is the purpose of a gas sensor?",
+            options=[
+                "To measure distance",
+                "To detect gases such as methane, LPG or carbon monoxide",
+                "To control an LED",
+                "To measure humidity"
+            ],
+            correct_option=1,
+            explanation="Gas sensors detect airborne chemical components or gaseous fuels."
+        ),
+        Question(
+            text="Which voltage regulator provides 3.3 V?",
+            options=["7805", "LD33V", "LM358", "7812"],
+            correct_option=1,
+            explanation="LD33V is a 3.3V fixed low-dropout (LDO) linear regulator."
+        ),
+        Question(
+            text="What is Blynk used for in the presented IoT system?",
+            options=[
+                "Compiling C programs",
+                "Creating an IoT dashboard and monitoring/control of devices",
+                "Programming only Arduino Uno",
+                "Designing PCBs"
+            ],
+            correct_option=1,
+            explanation="Blynk provides mobile and web dashboard frameworks to control connected hardware."
+        ),
+        Question(
+            text="In Blynk, what is a Datastream primarily used for?",
+            options=[
+                "Storing the ESP32 firmware",
+                "Defining how data is exchanged between the device and Blynk",
+                "Connecting the ESP32 to USB",
+                "Programming the DHT11"
+            ],
+            correct_option=1,
+            explanation="Datastreams channel numeric, string, or virtual parameters between the physical board and virtual widgets."
+        ),
+        Question(
+            text="Which function is used to send sensor values to a Blynk virtual pin?",
+            options=[
+                "Blynk.send()",
+                "Blynk.virtualWrite()",
+                "Blynk.writeSensor()",
+                "Blynk.sendData()"
+            ],
+            correct_option=1,
+            explanation="Blynk.virtualWrite(vPin, value) updates data on the specified virtual pin."
         ),
     ])
 
@@ -210,7 +270,7 @@ async def seed_part1_concepts(db):
 async def seed_part2_concepts(db):
     quiz = Quiz(
         title="C Programming - Part 2 Concepts",
-        description="Constants, Keywords, Identifiers, Operators, printf(), scanf(), if/else, switch, Loops",
+        description="Execution workflow, flowcharts, identifiers, conditionals, switch cases, and keywords in C.",
         difficulty=DifficultyLevel.easy,
         subject="Programming",
         topic="C Programming Basics",
@@ -220,508 +280,95 @@ async def seed_part2_concepts(db):
 
     quiz.questions.extend([
         Question(
-            text="What is a constant in C?",
+            text="What is the correct sequence for executing a C program?",
             options=[
-                "A variable whose value changes frequently",
-                "A value that cannot be changed during program execution",
-                "A function",
-                "A loop"
+                ".c -> CPU Compiler -> .exe -> Output",
+                ".c -> Compiler -> .exe -> CPU -> Output",
+                ".c -> .exe -> Compiler -> CPU -> Output",
+                ".c -> CPU -> .exe -> Compiler -> Output"
             ],
             correct_option=1,
-            explanation="Constants remain unchanged throughout program execution."
+            explanation="Source code (.c) gets compiled into executable binary (.exe), which is then run by the CPU to produce output."
         ),
         Question(
-            text="Which of the following is the best example of a constant?",
+            text="Which flowchart symbol is used to represent a decision?",
+            options=["Rectangle", "Oval", "Diamond", "Parallelogram"],
+            correct_option=2,
+            explanation="In flowcharts, diamonds represent decision-making nodes (e.g., condition checks)."
+        ),
+        Question(
+            text="Which of the following is a valid C identifier?",
+            options=["2marks", "student-name", "total_marks", "float"],
+            correct_option=2,
+            explanation="Identifiers cannot start with numbers, contain hyphens, or use reserved keywords. 'total_marks' is valid."
+        ),
+        Question(
+            text="What will be the output of this code?\nint x = 10;\nif (x > 5) {\n    printf(\"A\");\n} else {\n    printf(\"B\");\n}",
+            options=["A", "B", "AB", "No output"],
+            correct_option=0,
+            explanation="Since x = 10, the condition (10 > 5) is true, executing the first branch to print 'A'."
+        ),
+        Question(
+            text="Consider:\nint day = 3;\nswitch(day) {\n    case 1: printf(\"Monday\"); break;\n    case 3: printf(\"Wednesday\"); break;\n    default: printf(\"Invalid\");\n}\nWhat is the output?",
+            options=["Monday", "Tuesday", "Wednesday", "Invalid"],
+            correct_option=2,
+            explanation="The value of day is 3, matching 'case 3:' which prints 'Wednesday'."
+        ),
+        Question(
+            text="Why is &age used in the following statement?\nint age;\nscanf(\"%d\", &age);",
             options=[
-                "Student age",
-                "Bank balance",
-                "Number of days in a week",
-                "Current temperature"
+                "& converts age into a string",
+                "& provides the address where scanf() should store the input",
+                "& prints the value of age",
+                "& makes age a constant"
+            ],
+            correct_option=1,
+            explanation="The address-of operator (&) passes the memory address of the variable so scanf can write the value into it."
+        ),
+        Question(
+            text="Which declaration is invalid according to the identifier rules?",
+            options=["student_name", "_marks", "student2", "2student"],
+            correct_option=3,
+            explanation="Identifiers in C cannot begin with a numeric digit."
+        ),
+        Question(
+            text="What is the key difference between age, Age, and AGE in C?",
+            options=[
+                "They represent the same variable",
+                "Only age is valid",
+                "C treats them as different identifiers",
+                "Only uppercase identifiers are allowed"
             ],
             correct_option=2,
-            explanation="The number of days in a week is always 7."
+            explanation="C is a case-sensitive programming language, treating distinct letter cases as distinct identifiers."
         ),
         Question(
-            text="What are keywords in C?",
+            text="Which statement about the following is correct?\nconst int MAX_USERS = 100;",
             options=[
-                "Names chosen by programmers",
-                "Reserved words with predefined meanings",
-                "Comments",
-                "Header files"
-            ],
-            correct_option=1,
-            explanation="Keywords are reserved by the C language and cannot be used as identifiers."
-        ),
-        Question(
-            text="Which of the following is NOT a C keyword?",
-            options=[
-                "while",
-                "return",
-                "printf",
-                "switch"
+                "MAX_USERS can later be changed to 200",
+                "MAX_USERS is a variable that changes automatically",
+                "MAX_USERS cannot be modified during program execution",
+                "const means the value is stored in a string"
             ],
             correct_option=2,
-            explanation="printf() is a library function, not a keyword."
+            explanation="The 'const' qualifier marks a variable as read-only once initialized."
         ),
         Question(
-            text="An identifier is",
+            text="What is wrong with this declaration?\nint float = 10;",
             options=[
-                "A reserved keyword",
-                "A programmer-defined name",
-                "A compiler",
-                "A loop"
+                "10 cannot be assigned to an integer",
+                "float is a reserved keyword and cannot be used as an identifier",
+                "int cannot store numbers",
+                "Nothing is wrong"
             ],
             correct_option=1,
-            explanation="Identifiers are names given to variables, functions, arrays, etc."
-        ),
-        Question(
-            text="Which is a valid identifier?",
-            options=[
-                "2marks",
-                "student_marks",
-                "float",
-                "while"
-            ],
-            correct_option=1,
-            explanation="Identifiers cannot start with numbers or use reserved keywords."
-        ),
-        Question(
-            text="Which operator is used to assign a value to a variable?",
-            options=[
-                "==",
-                "=",
-                "!=",
-                ">"
-            ],
-            correct_option=1,
-            explanation="The assignment operator '=' stores a value in a variable."
-        ),
-        Question(
-            text="Which operator checks whether two values are equal?",
-            options=[
-                "=",
-                "==",
-                "!=",
-                "+="
-            ],
-            correct_option=1,
-            explanation="'==' compares two values for equality."
-        ),
-        Question(
-            text="Which operator returns true only if both conditions are true?",
-            options=[
-                "||",
-                "&&",
-                "!",
-                "%"
-            ],
-            correct_option=1,
-            explanation="Logical AND (&&) requires both expressions to be true."
-        ),
-        Question(
-            text="What is the purpose of printf()?",
-            options=[
-                "Accept input",
-                "Display output",
-                "Declare variables",
-                "Create loops"
-            ],
-            correct_option=1,
-            explanation="printf() displays formatted output on the screen."
-        ),
-        Question(
-            text="What is the purpose of scanf()?",
-            options=[
-                "Display output",
-                "Read input from the user",
-                "Create variables",
-                "Compile the program"
-            ],
-            correct_option=1,
-            explanation="scanf() accepts input from the keyboard."
-        ),
-        Question(
-            text="Which statement is mainly used to make decisions in a program?",
-            options=[
-                "for",
-                "if-else",
-                "printf",
-                "continue"
-            ],
-            correct_option=1,
-            explanation="if-else allows programs to choose between different paths."
-        ),
-        Question(
-            text="Which statement is best suited for selecting one option from multiple fixed choices?",
-            options=[
-                "while",
-                "switch",
-                "if",
-                "for"
-            ],
-            correct_option=1,
-            explanation="switch is ideal for menu-driven programs."
-        ),
-        Question(
-            text="Which loop is preferred when the number of iterations is already known?",
-            options=[
-                "while",
-                "do-while",
-                "for",
-                "switch"
-            ],
-            correct_option=2,
-            explanation="for loops are commonly used when the number of repetitions is known."
-        ),
-        Question(
-            text="Which loop always executes its body at least once?",
-            options=[
-                "for",
-                "while",
-                "do-while",
-                "switch"
-            ],
-            correct_option=2,
-            explanation="The condition in a do-while loop is checked after executing the loop body."
+            explanation="'float' is a reserved data type keyword in C and cannot be repurposed as a variable identifier."
         ),
     ])
 
     db.add(quiz)
     await db.commit()
     print("✅ Part 2 Concepts seeded successfully.")
-
-
-async def seed_part1_logic(db):
-    quiz = Quiz(
-        title="C Programming - Part 1 Logic",
-        description="Program Output and Basic Logic",
-        difficulty=DifficultyLevel.easy,
-        subject="Programming",
-        topic="Introduction to C",
-        quiz_type=QuizType.live.value,
-        is_active=True,
-    )
-
-    quiz.questions.extend([
-        Question(
-            text="What is the output?\n\nprintf(\"Hello World\");",
-            options=[
-                "Hello World",
-                "\"Hello World\"",
-                "Error",
-                "Nothing"
-            ],
-            correct_option=0,
-            explanation="printf() prints the given string."
-        ),
-        Question(
-            text="What is the output?\n\nint age=20;\nprintf(\"%d\",age);",
-            options=[
-                "20",
-                "age",
-                "%d",
-                "Error"
-            ],
-            correct_option=0,
-            explanation="age stores 20."
-        ),
-        Question(
-            text="What is the output?\n\nint a=5;\nprintf(\"%d\",a+2);",
-            options=[
-                "5",
-                "7",
-                "2",
-                "Error"
-            ],
-            correct_option=1,
-            explanation="5+2 = 7."
-        ),
-        Question(
-            text="What is the output?\n\nint a=10,b=20;\nprintf(\"%d\",a+b);",
-            options=[
-                "10",
-                "20",
-                "30",
-                "200"
-            ],
-            correct_option=2,
-            explanation="10+20=30."
-        ),
-        Question(
-            text="What is the output?\n\nchar ch='A';\nprintf(\"%c\",ch);",
-            options=[
-                "65",
-                "A",
-                "a",
-                "Error"
-            ],
-            correct_option=1,
-            explanation="%c prints a character."
-        ),
-        Question(
-            text="What is the output?\n\nchar ch='A';\nprintf(\"%d\",ch);",
-            options=[
-                "A",
-                "97",
-                "65",
-                "Error"
-            ],
-            correct_option=2,
-            explanation="ASCII value of A is 65."
-        ),
-        Question(
-            text="What is the output?\n\nfloat x=3.5;\nprintf(\"%.1f\",x);",
-            options=[
-                "3",
-                "3.5",
-                "4",
-                "Error"
-            ],
-            correct_option=1,
-            explanation="Displays one decimal place."
-        ),
-        Question(
-            text="What is the output?\n\nprintf(\"%d\",10+20*3);",
-            options=[
-                "90",
-                "60",
-                "70",
-                "30"
-            ],
-            correct_option=2,
-            explanation="Multiplication has higher precedence."
-        ),
-        Question(
-            text="What is the output?\n\nprintf(\"%d\",(10+20)*3);",
-            options=[
-                "90",
-                "70",
-                "60",
-                "30"
-            ],
-            correct_option=0,
-            explanation="Parentheses execute first."
-        ),
-        Question(
-            text="What is the output?\n\nprintf(\"%d\",15/2);",
-            options=[
-                "7",
-                "7.5",
-                "8",
-                "15"
-            ],
-            correct_option=0,
-            explanation="Integer division removes the decimal part."
-        ),
-        Question(
-            text="What is the output?\n\nprintf(\"%.2f\",15.0/2);",
-            options=[
-                "7",
-                "7.50",
-                "8",
-                "15"
-            ],
-            correct_option=1,
-            explanation="Floating-point division gives 7.50."
-        ),
-        Question(
-            text="What is the output?\n\nint x=5;\nprintf(\"%d\",x*x);",
-            options=[
-                "10",
-                "25",
-                "55",
-                "5"
-            ],
-            correct_option=1,
-            explanation="5 × 5 = 25."
-        ),
-        Question(
-            text="Which header file is required for printf()?",
-            options=[
-                "math.h",
-                "stdio.h",
-                "string.h",
-                "stdlib.h"
-            ],
-            correct_option=1,
-            explanation="printf() is declared in stdio.h."
-        ),
-        Question(
-            text="Which function starts execution of every C program?",
-            options=[
-                "printf()",
-                "start()",
-                "main()",
-                "scanf()"
-            ],
-            correct_option=2,
-            explanation="Execution begins from main()."
-        ),
-        Question(
-            text="What is the output?\n\nint a=2;\nint b=3;\nprintf(\"%d\",a*b+a);",
-            options=[
-                "8",
-                "10",
-                "6",
-                "5"
-            ],
-            correct_option=0,
-            explanation="2×3+2 = 8."
-        ),
-    ])
-
-    db.add(quiz)
-    await db.commit()
-    print("✅ Part 1 Logic seeded successfully.")
-
-
-async def seed_part2_logic(db):
-    quiz = Quiz(
-        title="C Programming - Part 2 Logic",
-        description="Operators, Decision Making and Loops",
-        difficulty=DifficultyLevel.medium,
-        subject="Programming",
-        topic="C Programming Logic",
-        quiz_type=QuizType.live.value,
-        is_active=True,
-    )
-
-    quiz.questions.extend([
-        Question(
-            text="What is the output?\n\nint x=5;\nprintf(\"%d\",x++);",
-            options=["5", "6", "Error", "Undefined"],
-            correct_option=0,
-            explanation="Post-increment returns the current value, then increments."
-        ),
-        Question(
-            text="What is the output?\n\nint x=5;\nprintf(\"%d\",++x);",
-            options=["5", "6", "Error", "Undefined"],
-            correct_option=1,
-            explanation="Pre-increment increments first, then prints."
-        ),
-        Question(
-            text="What is the output?\n\nprintf(\"%d\",10%3);",
-            options=["0", "1", "3", "10"],
-            correct_option=1,
-            explanation="10 divided by 3 leaves remainder 1."
-        ),
-        Question(
-            text="What is the output?\n\nif(5>3)\nprintf(\"Yes\");\nelse\nprintf(\"No\");",
-            options=["Yes", "No", "Error", "Nothing"],
-            correct_option=0,
-            explanation="5 is greater than 3."
-        ),
-        Question(
-            text="What is the output?\n\nint a=0;\nif(a)\nprintf(\"True\");\nelse\nprintf(\"False\");",
-            options=["True", "False", "0", "Error"],
-            correct_option=1,
-            explanation="0 is treated as false."
-        ),
-        Question(
-            text="What is the output?\n\nint a=5;\nif(a)\nprintf(\"True\");",
-            options=["True", "False", "Error", "Nothing"],
-            correct_option=0,
-            explanation="Any non-zero value is treated as true."
-        ),
-        Question(
-            text="What is the output?\n\nswitch(2)\n{\ncase 1: printf(\"One\"); break;\ncase 2: printf(\"Two\"); break;\ndefault: printf(\"Other\");\n}",
-            options=["One", "Two", "Other", "Error"],
-            correct_option=1,
-            explanation="Case 2 matches."
-        ),
-        Question(
-            text="What is the output?\n\nswitch(2)\n{\ncase 1: printf(\"One\");\ncase 2: printf(\"Two\");\ncase 3: printf(\"Three\");\n}",
-            options=[
-                "One",
-                "Two",
-                "TwoThree",
-                "Error"
-            ],
-            correct_option=2,
-            explanation="Without break, execution falls through."
-        ),
-        Question(
-            text="What is the output?\n\nfor(int i=1;i<=3;i++)\nprintf(\"%d\",i);",
-            options=[
-                "123",
-                "012",
-                "321",
-                "Error"
-            ],
-            correct_option=0,
-            explanation="Loop prints 1,2,3."
-        ),
-        Question(
-            text="What is the output?\n\nint i=3;\nwhile(i>0)\n{\nprintf(\"%d\",i);\ni--;\n}",
-            options=[
-                "123",
-                "321",
-                "012",
-                "Error"
-            ],
-            correct_option=1,
-            explanation="Countdown from 3."
-        ),
-        Question(
-            text="What is the output?\n\nint i=5;\ndo\n{\nprintf(\"%d\",i);\n}\nwhile(i<5);",
-            options=[
-                "5",
-                "Nothing",
-                "Error",
-                "55"
-            ],
-            correct_option=0,
-            explanation="do-while executes at least once."
-        ),
-        Question(
-            text="What is the output?\n\nprintf(\"%d\",5>3 && 10>2);",
-            options=[
-                "0",
-                "1",
-                "True",
-                "Error"
-            ],
-            correct_option=1,
-            explanation="Both conditions are true."
-        ),
-        Question(
-            text="What is the output?\n\nprintf(\"%d\",5<3 || 10>2);",
-            options=[
-                "0",
-                "1",
-                "True",
-                "Error"
-            ],
-            correct_option=1,
-            explanation="One condition is true."
-        ),
-        Question(
-            text="Which operator is used for comparison?",
-            options=[
-                "=",
-                "==",
-                "+=",
-                ":="
-            ],
-            correct_option=1,
-            explanation="'==' compares two values."
-        ),
-        Question(
-            text="What is the output?\n\nint x=2;\nint y=3;\nprintf(\"%d\",x<y);",
-            options=[
-                "0",
-                "1",
-                "2",
-                "3"
-            ],
-            correct_option=1,
-            explanation="2 is less than 3, so the expression evaluates to true (1)."
-        ),
-    ])
-
-    db.add(quiz)
-    await db.commit()
-    print("✅ Part 2 Logic seeded successfully.")
 
 
 async def seed():
@@ -731,8 +378,7 @@ async def seed():
         try:
             await seed_part1_concepts(db)
             await seed_part2_concepts(db)
-            await seed_part1_logic(db)
-            await seed_part2_logic(db)
+
             print("🚀 Seed process completed successfully!")
         except Exception as e:
             await db.rollback()
