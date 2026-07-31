@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useLiveSocket } from '../hooks/useLiveSocket'
 import { useParams } from 'react-router-dom'
+import { shuffleIndices } from '../utils/shuffle'
 const KEYS = ['A', 'B', 'C', 'D']
 
 // ── Resume-on-accidental-exit ───────────────────────────────────────────────
@@ -119,7 +120,7 @@ function WaitingRoom({ channelInfo, users }) {
   )
 }
 
-function LiveQuestionCard({ question, locked, onAnswer }) {
+function LiveQuestionCard({ question, locked, onAnswer, order }) {
   const [selected, setSelected] = useState(null)
   const [timeLeft, setTimeLeft] = useState(question.time_limit)
 
@@ -130,10 +131,13 @@ function LiveQuestionCard({ question, locked, onAnswer }) {
     return () => clearInterval(t)
   }, [question.id])
 
-  const pick = (i) => {
+  // `displayIdx` is the on-screen (shuffled) position. `order[displayIdx]` is
+  // the ORIGINAL option index, which is what we report to the server so
+  // scoring/leaderboard stay correct regardless of this client's shuffle.
+  const pick = (displayIdx) => {
     if (selected !== null || locked) return
-    setSelected(i)
-    onAnswer(question.index, i)
+    setSelected(displayIdx)
+    onAnswer(question.index, order[displayIdx])
   }
 
   return (
@@ -144,15 +148,15 @@ function LiveQuestionCard({ question, locked, onAnswer }) {
       </div>
       <p style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '1rem' }}>{question.text}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-        {question.options.map((opt, i) => (
+        {order.map((origIdx, displayIdx) => (
           <button
-            key={i}
-            className={`option-btn ${selected === i ? 'selected' : ''}`}
-            onClick={() => pick(i)}
+            key={displayIdx}
+            className={`option-btn ${selected === displayIdx ? 'selected' : ''}`}
+            onClick={() => pick(displayIdx)}
             disabled={selected !== null || locked}
           >
-            <span className="option-key">{KEYS[i]}</span>
-            <span style={{ flex: 1, textAlign: 'left' }}>{opt}</span>
+            <span className="option-key">{KEYS[displayIdx]}</span>
+            <span style={{ flex: 1, textAlign: 'left' }}>{question.options[origIdx]}</span>
           </button>
         ))}
       </div>
@@ -165,7 +169,7 @@ function LiveQuestionCard({ question, locked, onAnswer }) {
   )
 }
 
-function ExplainCard({ q, isAdmin, onPrev, onNext }) {
+function ExplainCard({ q, isAdmin, onPrev, onNext, order }) {
   const total = q.counts.reduce((a, b) => a + b, 0)
   return (
     <div className="card fade-up" style={{ maxWidth: 640, margin: '0 auto' }}>
@@ -174,12 +178,12 @@ function ExplainCard({ q, isAdmin, onPrev, onNext }) {
       </div>
       <p style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '1rem' }}>{q.text}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-        {q.options.map((opt, i) => {
-          const count = q.counts[i] || 0
+        {order.map((origIdx, displayIdx) => {
+          const count = q.counts[origIdx] || 0
           const pct = total ? Math.round((count / total) * 100) : 0
-          const isCorrect = i === q.correct_option
+          const isCorrect = origIdx === q.correct_option
           return (
-            <div key={i} className="option-btn" style={{
+            <div key={displayIdx} className="option-btn" style={{
               position: 'relative', overflow: 'hidden', cursor: 'default',
               background: isCorrect ? 'rgba(52,211,153,0.1)' : 'var(--bg3)',
               borderColor: isCorrect ? 'rgba(52,211,153,0.4)' : 'var(--border)',
@@ -188,8 +192,8 @@ function ExplainCard({ q, isAdmin, onPrev, onNext }) {
                 position: 'absolute', inset: 0, width: `${pct}%`,
                 background: isCorrect ? 'rgba(52,211,153,0.12)' : 'rgba(255,255,255,0.04)', zIndex: 0,
               }} />
-              <span className="option-key" style={{ position: 'relative' }}>{KEYS[i]}</span>
-              <span style={{ flex: 1, textAlign: 'left', position: 'relative' }}>{opt}</span>
+              <span className="option-key" style={{ position: 'relative' }}>{KEYS[displayIdx]}</span>
+              <span style={{ flex: 1, textAlign: 'left', position: 'relative' }}>{q.options[origIdx]}</span>
               <span style={{ position: 'relative', fontFamily: 'var(--font-head)', fontWeight: 700 }}>{count} · {pct}%</span>
             </div>
           )
@@ -239,6 +243,20 @@ export default function LiveQuiz() {
   const socket = useLiveSocket()
   const [joined, setJoined] = useState(false)
   const [resuming, setResuming] = useState(false)
+  // Per-question option shuffle order, cached by question index so the same
+  // client sees a stable shuffled order for a given question across the
+  // "answer" phase and the later "explain" (review) phase. This does not
+  // persist across reconnects/resumes by design — a fresh shuffle each time
+  // is fine since it's purely cosmetic and doesn't affect scoring.
+  const orderCacheRef = useRef({})
+  const getOptionOrder = (q) => {
+    if (!q) return []
+    const key = q.index
+    if (!orderCacheRef.current[key] || orderCacheRef.current[key].length !== q.options.length) {
+      orderCacheRef.current[key] = shuffleIndices(q.options.length)
+    }
+    return orderCacheRef.current[key]
+  }
   // Populated from localStorage on first render if this user has an
   // unfinished channel from a previous (accidentally-ended) session.
   const [resumable, setResumable] = useState(() => loadStoredChannel(user?.id))
@@ -332,14 +350,14 @@ export default function LiveQuiz() {
   return (
     <div className="page-wrap">
       {explainQuestion ? (
-        <ExplainCard q={explainQuestion} isAdmin={isAdmin} onPrev={explainPrev} onNext={explainNext} />
+        <ExplainCard q={explainQuestion} isAdmin={isAdmin} onPrev={explainPrev} onNext={explainNext} order={getOptionOrder(explainQuestion)} />
       ) : quizState === 'finished' ? (
         <LeaderboardCard scores={leaderboard} finished />
       ) : quizState === 'waiting' || !question ? (
         channelInfo && <WaitingRoom channelInfo={channelInfo} users={users} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <LiveQuestionCard question={question} locked={locked} onAnswer={submitAnswer} />
+          <LiveQuestionCard question={question} locked={locked} onAnswer={submitAnswer} order={getOptionOrder(question)} />
           {leaderboard.length > 0 && <LeaderboardCard scores={leaderboard} />}
         </div>
       )}

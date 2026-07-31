@@ -83,8 +83,10 @@ export default function Results() {
                 <table>
                   <thead>
                     <tr>
-                      <th>Quiz</th><th>Difficulty</th><th>Score</th>
-                      <th>Pct.</th><th>Submitted</th><th></th>
+                      <th>Quiz</th><th>Difficulty</th>
+                      {/* <th>Score</th>
+                      <th>Pct.</th> */}
+                      <th>Submitted</th><th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -95,8 +97,8 @@ export default function Results() {
                         <tr key={r.id} className="cursor-pointer" onClick={() => navigate(`/results/${r.id}`)}>
                           <td className="font-medium">{r.quiz_title}</td>
                           <td><DiffBadge level={r.difficulty} /></td>
-                          <td className="font-head font-bold">{r.score}/{r.total}</td>
-                          <td><span className={`font-head font-bold ${colorCls}`}>{pct}%</span></td>
+                          {/* <td className="font-head font-bold">{r.score}/{r.total}</td>
+                          <td><span className={`font-head font-bold ${colorCls}`}>{pct}%</span></td> */}
                           <td>{new Date(r.submitted_at).toLocaleDateString()}</td>
                           <td>
                             <button className="btn btn-ghost btn-sm"

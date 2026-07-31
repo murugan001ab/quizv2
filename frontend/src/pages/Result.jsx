@@ -51,7 +51,7 @@ export default function Result() {
     <div className="page-wrap max-w-[760px]">
 
       {/* ── Score hero ── */}
-      <div className="glass-panel fade-up text-center p-6 sm:p-10 mb-8">
+      {/* <div className="glass-panel fade-up text-center p-6 sm:p-10 mb-8">
         <div className="text-4xl mb-2">{grade.emoji}</div>
         <div className="font-head text-2xl font-extrabold mb-1" style={{ color: grade.color }}>
           {grade.label}
@@ -68,7 +68,7 @@ export default function Result() {
         <div className="mt-2 text-[0.8rem] text-white/40">
           Submitted: {new Date(data.submitted_at).toLocaleString()}
         </div>
-      </div>
+      </div> */}
 
       {/* ── Question review ── */}
       <div className="fade-up-1 mb-4">
@@ -90,9 +90,9 @@ export default function Result() {
                       <span className="text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-accent-400/10 text-accent-400">{q.year}</span>
                     )}
                   </div>
-                  <span className={`text-xs font-bold ${skipped ? 'text-white/40' : isRight ? 'text-accent-400' : 'text-rose-400'}`}>
+                  {/* <span className={`text-xs font-bold ${skipped ? 'text-white/40' : isRight ? 'text-accent-400' : 'text-rose-400'}`}>
                     {skipped ? '— Skipped' : isRight ? '✓ Correct' : '✗ Wrong'}
-                  </span>
+                  </span> */}
                 </div>
 
                 {/* ✅ Structured question renderer */}
@@ -107,7 +107,7 @@ export default function Result() {
                     const isCorrect = correct === j
                     const cls = isCorrect ? 'correct' : (isChosen && !isCorrect) ? 'wrong' : ''
                     return (
-                      <div key={j} className={`option-btn ${cls} cursor-default`}>
+                      <div key={j} className={`option-btn cursor-default`}>   {/*${cls}*/}
                         <span className="option-key">{KEYS[j]}</span>
                         <span className="flex-1 leading-normal">{opt}</span>
                         {isCorrect && (
@@ -115,11 +115,11 @@ export default function Result() {
                             ✓ Correct
                           </span>
                         )}
-                        {isChosen && !isCorrect && (
+                        {/* {isChosen && !isCorrect && (
                           <span className="ml-auto text-[0.72rem] text-rose-400 font-bold whitespace-nowrap">
                             Your answer
                           </span>
-                        )}
+                        )} */}
                       </div>
                     )
                   })}

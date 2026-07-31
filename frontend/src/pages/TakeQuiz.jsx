@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext'
 import { useData } from '../context/DataContext'
 import { Loading, DiffBadge, Spinner } from '../components/Shared'
 import QuestionText from '../components/QuestionText'
+import { shuffleQuizQuestions } from '../utils/shuffle'
 
 const KEYS = ['A', 'B', 'C', 'D']
 
@@ -45,7 +46,10 @@ export default function TakeQuiz() {
           api.userQuiz(token, id),
           api.startQuiz(token, id),
         ])
-        setQuiz(q)
+        // Shuffle question order + option order per attempt so users can't
+        // just copy answer positions from each other. Shuffled once here and
+        // kept in state, so it stays stable for the rest of the attempt.
+        setQuiz({ ...q, questions: shuffleQuizQuestions(q.questions) })
         setAttempt(a)
         if (a.answers)
           setAnswers(Object.fromEntries(Object.entries(a.answers).map(([k, v]) => [Number(k), v])))
@@ -58,7 +62,13 @@ export default function TakeQuiz() {
     init()
   }, [id])
 
-  const select = (qId, opt) => setAnswers(a => ({ ...a, [qId]: opt }))
+  // `displayIdx` is the position shown on screen (post-shuffle). We store the
+  // ORIGINAL option index in `answers` since that's what the backend expects
+  // and what a resumed attempt's `a.answers` is already keyed by.
+  const select = (q, displayIdx) => {
+    const originalIdx = q.optionOrder ? q.optionOrder[displayIdx] : displayIdx
+    setAnswers(a => ({ ...a, [q.id]: originalIdx }))
+  }
 
   const submit = useCallback(async () => {
     if (submitting) return
@@ -124,12 +134,15 @@ export default function TakeQuiz() {
             <QuestionText text={q.text} />
           </div>
           <div className="flex flex-col gap-2.5">
-            {q.options.map((opt, i) => (
-              <button key={i} className={`option-btn ${answers[q.id] === i ? 'selected' : ''}`} onClick={() => select(q.id, i)}>
-                <span className="option-key">{KEYS[i]}</span>
-                <span className="flex-1 text-left leading-normal">{opt}</span>
-              </button>
-            ))}
+            {q.options.map((opt, i) => {
+              const originalIdx = q.optionOrder ? q.optionOrder[i] : i
+              return (
+                <button key={i} className={`option-btn ${answers[q.id] === originalIdx ? 'selected' : ''}`} onClick={() => select(q, i)}>
+                  <span className="option-key">{KEYS[i]}</span>
+                  <span className="flex-1 text-left leading-normal">{opt}</span>
+                </button>
+              )
+            })}
           </div>
           <div className="flex gap-3 mt-6">
             <button className="btn btn-ghost flex-1 sm:flex-initial" onClick={() => setCurrent(c => c - 1)} disabled={current === 0}>← Previous</button>
