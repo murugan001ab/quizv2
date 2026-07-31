@@ -23,7 +23,7 @@ export default function Results() {
 
   return (
     <div className="page-wrap">
-      {/* <div className="page-header fade-up">
+      <div className="page-header fade-up">
         <h1 className="page-title">My Results</h1>
         <p className="page-sub">Review your quiz history and scores</p>
       </div>
@@ -35,7 +35,7 @@ export default function Results() {
             <div className="stat-value">{results.length}</div>
             <div className="stat-sub">Quizzes submitted</div>
           </div>
-          <div className="stat-card">
+          {/* <div className="stat-card">
             <div className="stat-label">Avg. Score</div>
             <div className="stat-value">
               {avgScore}<span className="text-base text-white/40">%</span>
@@ -48,9 +48,9 @@ export default function Results() {
               {best}<span className="text-base text-white/40">%</span>
             </div>
             <div className="stat-sub">Personal best</div>
-          </div>
+          </div> */}
         </div>
-      )} */}
+      )}
 
       {results.length === 0
         ? <EmptyState icon="🏆" title="No results yet" sub="Take a quiz to see your results here."

@@ -45,13 +45,13 @@ export default function UserDashboard() {
           <div className="stat-value">{completed}</div>
           <div className="stat-sub">Tests submitted</div>
         </div>
-        <div className="stat-card">
+        {/* <div className="stat-card">
           <div className="stat-label">Avg. Score</div>
           <div className="stat-value">
             {avgScore}<span className="text-base text-white/40">%</span>
           </div>
           <div className="stat-sub">Across all tests</div>
-        </div>
+        </div> */}
       </div>
 
       <div className="fade-up-2">
