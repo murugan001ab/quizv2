@@ -50,6 +50,43 @@ async def dashboard_stats(db: AsyncSession = Depends(get_db), _=Depends(get_admi
     }
 
 
+@router.get("/attempts", response_model=List[AttemptOut])
+async def all_attempts(
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_admin_user),
+):
+    """Most recent attempts across every quiz (not just a handful of
+    quizzes), newest submissions first. Fixes the dashboard's old approach
+    of only checking the first 5 quizzes returned by list_quizzes (which
+    has no ORDER BY, so it isn't the same as "most recently active
+    quizzes") — that meant quizzes created later, even if heavily attempted,
+    never showed up in "Recent Attempts".
+    """
+    result = await db.execute(
+        select(QuizAttempt)
+        .order_by(QuizAttempt.submitted_at.desc().nullslast(), QuizAttempt.started_at.desc())
+        .limit(limit)
+    )
+    attempts = result.scalars().all()
+
+    enriched = []
+    for a in attempts:
+        quiz_r = await db.execute(select(Quiz).where(Quiz.id == a.quiz_id))
+        quiz = quiz_r.scalar_one_or_none()
+        user_r = await db.execute(select(User).where(User.id == a.user_id))
+        user = user_r.scalar_one_or_none()
+        enriched.append(AttemptOut(
+            id=a.id, quiz_id=a.quiz_id, user_id=a.user_id,
+            score=a.score, total=a.total, submitted=a.submitted,
+            started_at=a.started_at, submitted_at=a.submitted_at,
+            quiz_title=quiz.title if quiz else None,
+            difficulty=quiz.difficulty.value if quiz else None,
+            user=UserOut.model_validate(user) if user else None,
+        ))
+    return enriched
+
+
 @router.get("/live", response_model=List[AttemptOut])
 async def live_attempts(db: AsyncSession = Depends(get_db), _=Depends(get_admin_user)):
     """Currently in-progress attempts (started, not yet submitted, quiz not
@@ -80,7 +117,7 @@ async def live_attempts(db: AsyncSession = Depends(get_db), _=Depends(get_admin_
             started_at=a.started_at, submitted_at=a.submitted_at,
             quiz_title=quiz.title if quiz else None,
             difficulty=quiz.difficulty.value if quiz else None,
-            username=user.username if user else None,
+            user=UserOut.model_validate(user) if user else None,
         ))
     return enriched
 
@@ -228,6 +265,6 @@ async def quiz_attempts(quiz_id: int, db: AsyncSession = Depends(get_db), _=Depe
             started_at=a.started_at, submitted_at=a.submitted_at,
             quiz_title=quiz.title if quiz else None,
             difficulty=quiz.difficulty.value if quiz else None,
-            username=user.username if user else None,
+            user=UserOut.model_validate(user) if user else None,
         ))
     return enriched

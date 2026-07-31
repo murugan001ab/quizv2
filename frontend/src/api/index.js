@@ -57,6 +57,7 @@ export const api = {
   updateQuestion: (token, qId, data) => req('PUT', `/admin/questions/${qId}`, data, token),
   deleteQuestion: (token, qId) => req('DELETE', `/admin/questions/${qId}`, null, token),
   quizAttempts: (token, quizId) => req('GET', `/admin/quizzes/${quizId}/attempts`, null, token),
+  adminAttempts: (token, limit = 50) => req('GET', `/admin/attempts?limit=${limit}`, null, token),
   adminLive: (token) => req('GET', '/admin/live', null, token),
 
   // Live quiz channels

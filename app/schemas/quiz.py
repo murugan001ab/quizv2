@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime
 from app.models.quiz import DifficultyLevel, QuizType
-
+from app.schemas.user import UserOut
 
 class QuestionCreate(BaseModel):
     text: str
@@ -86,7 +86,7 @@ class AttemptOut(BaseModel):
     submitted_at: Optional[datetime]
     quiz_title: Optional[str] = None
     difficulty: Optional[str] = None
-    username: Optional[str] = None
+    user: Optional[UserOut] = None
 
     class Config:
         from_attributes = True

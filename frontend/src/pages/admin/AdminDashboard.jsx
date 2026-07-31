@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import * as XLSX from 'xlsx'
 import { useData } from '../../context/DataContext'
 import { useAuth } from '../../context/AuthContext'
 import { api } from '../../api'
@@ -38,11 +39,11 @@ function ActivityRow({ a, i }) {
         fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '0.7rem',
         color: 'var(--text2)', flexShrink: 0,
       }}>
-        {(a.username || 'U').charAt(0).toUpperCase()}
+        {(a.user?.username || 'U').charAt(0).toUpperCase()}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {a.username || '—'}
+          {a.user?.username || '—'}
         </div>
         <div style={{ color: 'var(--text3)', fontSize: '0.72rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {a.quiz_title || 'Unknown Quiz'}
@@ -69,28 +70,24 @@ export default function AdminDashboard() {
   const [localAttempts, setLocalAttempts] = useState([])
   const intervalRef = useRef(null)
 
-  // Load attempts from top-5 quizzes — only once when quizzes first arrive
-  const loadAttempts = async (quizList) => {
-    if (!quizList?.length) return
-    const results = await Promise.all(
-      quizList.slice(0, 5).map(q => api.quizAttempts(token, q.id).catch(() => []))
-    )
-    const flat = results.flat().sort((a, b) =>
-      new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0)
-    )
-    setLocalAttempts(flat)
+  // Load the most recent attempts across ALL quizzes (not just a handful),
+  // newest submissions first. Previously this only checked the first 5
+  // quizzes returned by the unordered /admin/quizzes list, so quizzes
+  // created later — even if heavily attempted — never showed up here.
+  const loadAttempts = async () => {
+    try {
+      const attempts = await api.adminAttempts(token, 50)
+      setLocalAttempts(attempts)
+    } catch {
+      setLocalAttempts([])
+    }
   }
 
   useEffect(() => {
     adminStats.load()
     adminQuizzes.load()
+    loadAttempts()
   }, [])
-
-  useEffect(() => {
-    if (adminQuizzes.data && localAttempts.length === 0) {
-      loadAttempts(adminQuizzes.data)
-    }
-  }, [adminQuizzes.data])
 
   // Only refresh lightweight stats counter periodically
   useEffect(() => {
@@ -101,6 +98,31 @@ export default function AdminDashboard() {
   const stats     = adminStats.data
   const firstLoad = adminStats.data === null && adminStats.loading
   if (firstLoad) return <Loading />
+
+  // Export the currently loaded attempts (username, percent score, submitted date)
+  // as a downloadable .xlsx report.
+  const exportAttemptsToExcel = () => {
+    if (!localAttempts.length) return
+
+    const rows = localAttempts.map(a => ({
+      'User Name': a.user?.username || '—',
+      'Full Name': a.user?.name || '—',
+      'Email': a.user?.email || '—',
+      'Percent Score': a.submitted_at && a.total
+        ? `${Math.round((a.score / a.total) * 100)}%`
+        : 'In Progress',
+      'Submitted On': a.submitted_at ? new Date(a.submitted_at).toLocaleString() : '—',
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(rows)
+    worksheet['!cols'] = [{ wch: 20 }, { wch: 24 }, { wch: 28 }, { wch: 15 }, { wch: 22 }]
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Quiz Attempts')
+
+    const timestamp = new Date().toISOString().slice(0, 10)
+    XLSX.writeFile(workbook, `quiz_attempts_report_${timestamp}.xlsx`)
+  }
 
   return (
     <div className="page-wrap">
@@ -173,7 +195,12 @@ export default function AdminDashboard() {
       <div className="card fade-up-3">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <div style={{ fontFamily: 'var(--font-head)', fontWeight: 700, fontSize: '1rem' }}>Recent Attempts</div>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/admin/quizzes')}>View Quizzes →</button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {localAttempts.length > 0 && (
+              <button className="btn btn-ghost btn-sm" onClick={exportAttemptsToExcel}>Export to Excel ⬇</button>
+            )}
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/admin/quizzes')}>View Quizzes →</button>
+          </div>
         </div>
         {localAttempts.length === 0
           ? <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text3)', fontSize: '0.875rem' }}>No recent attempts yet.</div>
