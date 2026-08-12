@@ -138,12 +138,14 @@ const CodeEditor = forwardRef(function CodeEditor(
             minimap: { enabled: false },
             readOnly,
             automaticLayout: true,
-            scrollBeyondLastLine: false,
+            scrollBeyondLastLine: true,
             tabSize: 4,
-            wordWrap: "on",
             padding: { top: 14 },
             fontLigatures: true,
             contextmenu: false,
+            wordWrap: "off",
+            scrollBeyondLastColumn: 20,
+            horizontalScrollbarSize: 10,
           }}
         />
       </div>
