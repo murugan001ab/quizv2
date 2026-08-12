@@ -5,10 +5,10 @@ import { useToast } from '../../context/ToastContext'
 import { Loading, DiffBadge, Modal, Spinner } from '../../components/Shared'
 
 const DIFFS = ['easy', 'medium', 'hard']
-const SUBJECTS = ['Tamil', 'Science', 'Physics', 'Maths', 'Biology', 'Chemistry', 'History', 'English']
+const SUBJECTS = ['Python', 'JAVA', 'C', 'C++', 'AI/ML', 'Genral', 'Programing']
 const KEYS = ['A', 'B', 'C', 'D']
 const QUIZ_TYPES = ['scheduled', 'live']
-const emptyQuiz = { title: '', description: '', subject: 'Maths', topic: '', difficulty: 'medium', quiz_type: 'scheduled', scheduled_start: '', scheduled_end: '' }
+const emptyQuiz = { title: '', description: '', subject: 'Python', topic: '', difficulty: 'medium', quiz_type: 'scheduled', scheduled_start: '', scheduled_end: '' }
 
 // ── Attempts modal ───────────────────────────────────────────────────────────
 function AttemptsModal({ quizId, quizTitle, token, onClose }) {

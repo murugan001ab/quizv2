@@ -68,7 +68,7 @@ class QuizOut(BaseModel):
 
 
 class QuizDetail(QuizOut):
-    questions: List[QuestionOut] = []
+    questions: List[QuestionOutWithAnswer] = []
 
 
 class SubmitAnswers(BaseModel):
