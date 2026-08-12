@@ -35,7 +35,7 @@ export default function Results() {
             <div className="stat-value">{results.length}</div>
             <div className="stat-sub">Quizzes submitted</div>
           </div>
-          {/* <div className="stat-card">
+          <div className="stat-card">
             <div className="stat-label">Avg. Score</div>
             <div className="stat-value">
               {avgScore}<span className="text-base text-white/40">%</span>
@@ -48,7 +48,7 @@ export default function Results() {
               {best}<span className="text-base text-white/40">%</span>
             </div>
             <div className="stat-sub">Personal best</div>
-          </div> */}
+          </div>
         </div>
       )}
 
@@ -84,8 +84,8 @@ export default function Results() {
                   <thead>
                     <tr>
                       <th>Quiz</th><th>Difficulty</th>
-                      {/* <th>Score</th>
-                      <th>Pct.</th> */}
+                      <th>Score</th>
+                      <th>Pct.</th>
                       <th>Submitted</th><th></th>
                     </tr>
                   </thead>
@@ -97,8 +97,8 @@ export default function Results() {
                         <tr key={r.id} className="cursor-pointer" onClick={() => navigate(`/results/${r.id}`)}>
                           <td className="font-medium">{r.quiz_title}</td>
                           <td><DiffBadge level={r.difficulty} /></td>
-                          {/* <td className="font-head font-bold">{r.score}/{r.total}</td>
-                          <td><span className={`font-head font-bold ${colorCls}`}>{pct}%</span></td> */}
+                          <td className="font-head font-bold">{r.score}/{r.total}</td>
+                          <td><span className={`font-head font-bold ${colorCls}`}>{pct}%</span></td>
                           <td>{new Date(r.submitted_at).toLocaleDateString()}</td>
                           <td>
                             <button className="btn btn-ghost btn-sm"

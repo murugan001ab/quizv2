@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models.quiz import Quiz, Question, QuizAttempt, now_ist
 from app.models.user import User
 from app.schemas.quiz import (
-    QuizCreate, QuizUpdate, QuizOut, QuizDetail,
+    QuizCreate, QuizUpdate, QuizOut, QuizDetail,AdminQuizDetail,
     QuestionCreate, QuestionOut, QuestionOutWithAnswer,
     AttemptOut
 )
@@ -158,7 +158,7 @@ async def list_quizzes(
     return quizzes
 
 
-@router.get("/quizzes/{quiz_id}", response_model=QuizDetail)
+@router.get("/quizzes/{quiz_id}", response_model=AdminQuizDetail)
 async def get_quiz(
     quiz_id: int,
     db: AsyncSession = Depends(get_db),
