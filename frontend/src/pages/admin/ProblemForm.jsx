@@ -151,6 +151,7 @@ export default function ProblemForm() {
       constraints: draft.constraints || "",
       starter_code: starter ? starter.code : f.starter_code,
       difficulty: draft.difficulty,
+      topic_id:11,
       // Only restrict to what LeetCode actually gave us starter code for —
       // leave unchecked (all languages open) if we couldn't tell.
       allowed_languages: availableLangs.length ? availableLangs : [],
