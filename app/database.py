@@ -32,7 +32,7 @@ async def get_db():
 
 async def init_db():
     async with engine.begin() as conn:
-        from app.models import user, quiz, problem, discussion, saved_code  # noqa: registers models with Base
+        from app.models import user, quiz, problem, discussion, saved_code, leetcode  # noqa: registers models with Base
         await conn.run_sync(Base.metadata.create_all)
         # create_all only creates missing tables — it never ALTERs a table
         # that's already there. quiz_type was added after quizzes already

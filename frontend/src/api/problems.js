@@ -46,3 +46,10 @@ export const adminUpdateTestCase = (tcId, data) =>
   api.put(`/admin/problems/test-cases/${tcId}`, data).then((r) => r.data);
 export const adminDeleteTestCase = (tcId) =>
   api.delete(`/admin/problems/test-cases/${tcId}`);
+
+// ---- Admin: LeetCode import ----
+export const adminSearchLeetcode = (q, limit = 15) =>
+  api.get("/admin/leetcode/search", { params: { q, limit } }).then((r) => r.data);
+
+export const adminImportLeetcode = (titleSlug) =>
+  api.get(`/admin/leetcode/import/${titleSlug}`).then((r) => r.data);

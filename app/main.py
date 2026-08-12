@@ -4,7 +4,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from sqlalchemy import select
 from app.database import init_db, AsyncSessionLocal
-from app.routers import auth, admin, user, ws, live, problems, admin_problems, discussion
+from app.routers import (
+    auth,
+    admin,
+    user,
+    ws,
+    live,
+    problems,
+    admin_problems,
+    discussion,
+    admin_leetcode,
+)
 from app.core.security import hash_password
 from app.models.user import User
 
@@ -41,6 +51,7 @@ app.include_router(live.router)
 app.include_router(problems.router)
 app.include_router(admin_problems.router)
 app.include_router(discussion.router)
+app.include_router(admin_leetcode.router)
 
 
 @app.on_event("startup")

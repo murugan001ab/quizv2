@@ -11,6 +11,7 @@ import {
   adminDeleteTestCase,
 } from "../../api/problems";
 import { Loading, Spinner } from "../../components/Shared";
+import LeetCodeImportModal from "../../components/LeetCodeImportModal";
 import { useToast } from "../../context/ToastContext";
 
 const emptyTestCase = () => ({
@@ -56,6 +57,7 @@ export default function ProblemForm() {
   const [testCases, setTestCases] = useState([emptyTestCase(), emptyTestCase(), emptyTestCase()]);
   const [saving, setSaving] = useState(false);
   const [clearPassword, setClearPassword] = useState(false);
+  const [showLeetCodeModal, setShowLeetCodeModal] = useState(false);
 
   useEffect(() => {
     adminListTopics().then(setTopics).catch(() => {});
@@ -134,6 +136,48 @@ export default function ProblemForm() {
     }
   };
 
+  const handleImport = (draft) => {
+    // Prefer a python3 snippet as the single starter_code field (the form
+    // only has one slot); fall back to whatever LeetCode gave us.
+    const starter =
+      draft.starter_codes.find((s) => s.language === "python3") || draft.starter_codes[0];
+    const availableLangs = draft.starter_codes.map((s) => s.language);
+
+    setForm((f) => ({
+      ...f,
+      title: draft.title,
+      slug: draft.slug,
+      description: draft.description,
+      constraints: draft.constraints || "",
+      starter_code: starter ? starter.code : f.starter_code,
+      difficulty: draft.difficulty,
+      // Only restrict to what LeetCode actually gave us starter code for —
+      // leave unchecked (all languages open) if we couldn't tell.
+      allowed_languages: availableLangs.length ? availableLangs : [],
+      default_language: starter ? starter.language : "",
+    }));
+
+    if (draft.examples.length) {
+      setTestCases(
+        draft.examples.map((ex, i) => ({
+          id: null,
+          input: ex.input,
+          expected_output: ex.output,
+          is_hidden: i >= 2, // keep the first couple visible, rest hidden
+          points: 1,
+        }))
+      );
+    }
+
+    setShowLeetCodeModal(false);
+    toast?.(
+      draft.examples.length
+        ? `Imported "${draft.title}" — double-check the ${draft.examples.length} example test case(s), LeetCode's I/O format doesn't always match stdin/stdout.`
+        : `Imported "${draft.title}" — no example test cases could be parsed, add them manually.`,
+      "success"
+    );
+  };
+
   const handleSave = async () => {
     if (!form.title.trim()) return toast?.("Title is required", "error");
     if (!form.slug.trim()) return toast?.("Slug is required", "error");
@@ -185,13 +229,26 @@ export default function ProblemForm() {
         <Link to="/admin/problems" className="btn btn-ghost btn-icon shrink-0" title="Back to problems">
           ←
         </Link>
-        <div className="page-header">
+        <div className="page-header flex-1">
           <h1 className="page-title">{isEdit ? "Edit Problem" : "New Problem"}</h1>
           <p className="page-sub">
             {isEdit ? "Update the details, test cases, or access controls." : "Set up a new coding practice problem."}
           </p>
         </div>
+        {!isEdit && (
+          <button
+            type="button"
+            onClick={() => setShowLeetCodeModal(true)}
+            className="btn btn-ghost shrink-0"
+          >
+            📥 Import from LeetCode
+          </button>
+        )}
       </div>
+
+      {showLeetCodeModal && (
+        <LeetCodeImportModal onClose={() => setShowLeetCodeModal(false)} onImport={handleImport} />
+      )}
 
       {/* Basic info */}
       <div className="glass-panel p-6 flex flex-col gap-4 fade-up-1">
