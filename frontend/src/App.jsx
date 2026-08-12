@@ -99,10 +99,10 @@ export default function App() {
               path="/login"
               element={<Login />}
             />
-            <Route
+            {/* <Route
               path="/register"
               element={<Register/>}
-              />
+              /> */}
 
             {/* ================= USER ================= */}
 

@@ -59,7 +59,7 @@ export default function Login() {
         </form>
 
         <div className="auth-switch">
-          Don't have an account? <Link to="/register">Register</Link>
+          {/* Don't have an account? <Link to="/register">Register</Link> */}
         </div>
       </div>
     </div>
