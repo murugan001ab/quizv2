@@ -67,8 +67,11 @@ class QuizOut(BaseModel):
         from_attributes = True
 
 
-class QuizDetail(QuizOut):
+class AdminQuizDetail(QuizOut):
     questions: List[QuestionOutWithAnswer] = []
+
+class QuizDetail(QuizOut):
+    questions: List[QuestionOut] = []
 
 
 class SubmitAnswers(BaseModel):
