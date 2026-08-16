@@ -13,7 +13,7 @@ export default function ProblemList() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    getTopics().then(setTopics).catch(() => {});
+    getTopics().then(setTopics).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -91,32 +91,42 @@ export default function ProblemList() {
         />
       ) : (
         <div className="flex flex-col gap-3 fade-up-2">
-          {visibleProblems.map((p) => (
+          {visibleProblems.map((p, index) => (
             <button
               key={p.id}
               onClick={() => navigate(`/problems/${p.id}`)}
-              className={`glass-panel glass-hover flex items-center justify-between gap-4 px-5 py-4 text-left ${
-                p.solved ? "border border-emerald-400/20" : ""
-              }`}
+              className={`glass-panel glass-hover w-full flex items-center justify-between gap-4 px-5 py-4 text-left transition-all ${p.solved ? "border border-emerald-400/20 bg-emerald-500/5" : ""
+                }`}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              {/* Left Section: Index, Status Icon, Lock, Title */}
+              <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                <span className="text-xs font-mono text-white/40 w-6 shrink-0">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+
                 {p.solved ? (
-                  <span className="shrink-0 text-emerald-400" title="Solved">
-                    ✅
+                  <span className="shrink-0 text-emerald-400 text-sm" title="Solved">
+                    ✓
                   </span>
                 ) : (
-                  <span className="shrink-0 w-4 h-4 rounded-full border border-white/15" title="Not solved yet" />
+                  <span
+                    className="shrink-0 w-3.5 h-3.5 rounded-full border border-white/20"
+                    title="Not solved yet"
+                  />
                 )}
+
                 {p.is_locked && (
-                  <span className="shrink-0" title="Password protected">
+                  <span className="shrink-0 text-sm" title="Password protected">
                     🔒
                   </span>
                 )}
-                <span className="font-head font-semibold text-white/90 truncate">
+
+                <span className="font-head font-medium text-white/90 truncate">
                   {p.title}
                 </span>
-                {/* {p.topic?.name && <span className="tag shrink-0">{p.topic.name}</span>} */}
               </div>
+
+              {/* Right Section: Badges */}
               <div className="flex items-center gap-2 shrink-0">
                 {p.solved && <span className="badge-easy">Solved</span>}
                 <DiffBadge level={p.difficulty} />
