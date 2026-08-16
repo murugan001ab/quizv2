@@ -15,22 +15,174 @@ from app.core.security import hash_password
 
 
 SAMPLE_USERS =[
-  {
-    "name": "Suganthan A K V",
-    "username": "suganthanakv28042006",
-    "email": "suganthanakv@gmail.com",
-    "password": "suganthanakv@123",
+{
+    "name": "Mathananandhan",
+    "username": "mathananandhan58",
+    "email": "mathananandhan58@gmail.com",
+    "password": "123",
     "is_admin": False,
     "profile_url": None
-  },
-  {
-    "name": "Sai pranesh",
-    "username": "saipranesh05062006",
-    "email": "Saipranesh44@gmail.com",
-    "password": "saipranesh@123",
+},
+{
+    "name": "Aashra Begam",
+    "username": "aashra2005",
+    "email": "aashra2005@gmail.com",
+    "password": "123",
     "is_admin": False,
     "profile_url": None
-  },
+},
+{
+    "name": "Sakthi Vel",
+    "username": "sakthivip70",
+    "email": "Sakthivip70@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Mani Kandan",
+    "username": "manikandanelumalai2323",
+    "email": "manikandanelumalai2323@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Bharath",
+    "username": "vbarathanvadivel8121",
+    "email": "vbarathanvadivel8121@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Sushmasri",
+    "username": "sushmasri954",
+    "email": "sushmasri954@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Jaasam Jaasam",
+    "username": "jaasamjaasam950",
+    "email": "jaasamjaasam950@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Sanjay S",
+    "username": "sanjaysanthosh131920",
+    "email": "sanjaysanthosh131920@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "sdharshini",
+    "username": "sdharshini2032",
+    "email": "sdharshini2032@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "vimalraj mca",
+    "username": "mcavimalraj",
+    "email": "mcavimalraj@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Shajith Riswan",
+    "username": "shajithriswan",
+    "email": "shajithriswan@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Ganesan M",
+    "username": "ganesanmkvm",
+    "email": "ganesanmkvm@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Dharshini",
+    "username": "dharshudimple2006",
+    "email": "dharshudimple2006@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Snekha uma Snekha uma",
+    "username": "snekhaumasnekhauma",
+    "email": "Snekhaumasnekhauma@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Haridass",
+    "username": "hxridass",
+    "email": "hxridass@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Deepan Raj",
+    "username": "deepann0628",
+    "email": "deepann0628@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "B.Balamurugan",
+    "username": "murugan6380yu",
+    "email": "murugan6380yu@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Rohith Kumar",
+    "username": "rohithkumar55666",
+    "email": "rohithkumar55666@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Harish M",
+    "username": "harishmurugan7706",
+    "email": "harishmurugan7706@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Prabu",
+    "username": "prabudakshna",
+    "email": "Prabudakshna@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+},
+{
+    "name": "Sharin",
+    "username": "heefasharin",
+    "email": "heefasharin@gmail.com",
+    "password": "123",
+    "is_admin": False,
+    "profile_url": None
+}
 ]
 
 
