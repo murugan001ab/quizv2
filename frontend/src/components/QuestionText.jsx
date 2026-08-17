@@ -60,9 +60,9 @@ function splitLines(text) {
 
 function cleanQuestionText(text) {
   return text
-    .replace(/^\s*\*\*Q\d+\*\*\s*/i, '')
-    .replace(/^\s*Q\d+\s*/i, '')
-    .replace(/\*\*(.*?)\*\*/gs, '$1')
+    .replace(/^\s*\*\*Q\d+\*\*\s*/im, '')
+    .replace(/^\s*Q\d+\s*/im, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
     .trim()
 }
 
@@ -89,7 +89,7 @@ function extractCodeBlock(text) {
 
   return {
     question: text.slice(0, match.index).trim(),
-    code: match[1].trim(),
+    code: match[1],
   }
 }
 
@@ -99,10 +99,10 @@ function extractCodeBlock(text) {
 
 function splitQuestionAndCode(text) {
   const patterns = [
-    /^(.*?following\s+code\s*\?)\s*([\s\S]*)$/i,
-    /^(.*?output\s+of\s+the\s+following\s+code)\s*:?\s*([\s\S]*)$/i,
-    /^(.*?output\s+of\s+this\s+code\s*\?)\s*([\s\S]*)$/i,
-    /^(.*?what\s+is\s+the\s+output\s*\?)\s*([\s\S]*)$/i,
+    /^(.*?following\s+code\s*\?)\s*\n?([\s\S]*)$/i,
+    /^(.*?output\s+of\s+the\s+following\s+code)\s*:?\s*\n?([\s\S]*)$/i,
+    /^(.*?output\s+of\s+this\s+code\s*\?)\s*\n?([\s\S]*)$/i,
+    /^(.*?what\s+is\s+the\s+output\s*\?)\s*\n?([\s\S]*)$/i,
   ]
 
   for (const pattern of patterns) {
@@ -110,9 +110,9 @@ function splitQuestionAndCode(text) {
     if (!match) continue
 
     const question = match[1].trim()
-    const code = match[2].trim()
+    const code = match[2]
 
-    if (code) {
+    if (code && code.trim()) {
       return { question, code }
     }
   }
@@ -121,7 +121,7 @@ function splitQuestionAndCode(text) {
 }
 
 // ============================================================
-// PYTHON STATEMENT SPLITTER
+// PYTHON STATEMENT SPLITTER (For single-line flattened snippets)
 // ============================================================
 
 function splitPythonStatements(code) {
@@ -146,9 +146,7 @@ function splitPythonStatements(code) {
         escaped = true
         continue
       }
-      if (char === quote) {
-        quote = null
-      }
+      if (char === quote) quote = null
       continue
     }
 
@@ -166,18 +164,9 @@ function splitPythonStatements(code) {
     if (char === '}') braceDepth--
 
     const outsideBrackets =
-      parenDepth === 0 &&
-      bracketDepth === 0 &&
-      braceDepth === 0 &&
-      quote === null
+      parenDepth === 0 && bracketDepth === 0 && braceDepth === 0 && quote === null
 
-    if (char === '\n' && outsideBrackets) {
-      if (current.trim()) statements.push(current.trim())
-      current = ''
-      continue
-    }
-
-    if (char === ';' && outsideBrackets) {
+    if ((char === '\n' || char === ';') && outsideBrackets) {
       if (current.trim()) statements.push(current.trim())
       current = ''
       continue
@@ -191,7 +180,7 @@ function splitPythonStatements(code) {
       const remaining = code.slice(j)
 
       const nextStatement =
-        /^(if|elif|else|for|while|try|except|finally|def|class|return|break|continue|pass|raise|print)\b/i.test(
+        /^(if|elif|else|for|while|try|except|finally|with|def|class|return|break|continue|pass|raise|print)\b/i.test(
           remaining
         )
 
@@ -203,76 +192,63 @@ function splitPythonStatements(code) {
     }
   }
 
-  if (current.trim()) {
-    statements.push(current.trim())
-  }
-
+  if (current.trim()) statements.push(current.trim())
   return statements
 }
 
-// ============================================================
-// SPLIT ATTACHED ELSE / ELIF / EXCEPT / FINALLY
-// ============================================================
-
 function splitAttachedKeywords(statements) {
   const result = []
-
   for (const statement of statements) {
-    const parts = statement.split(
-      /\s+(?=(?:else|elif|except|finally)\s*:)/i
-    )
-
+    const parts = statement.split(/\s+(?=(?:else|elif|except|finally)\s*:)/i)
     for (const part of parts) {
-      if (part.trim()) {
-        result.push(part.trim())
-      }
+      if (part.trim()) result.push(part.trim())
     }
   }
-
   return result
 }
 
-// ============================================================
-// BUILD PYTHON INDENTATION
-// ============================================================
-
 function buildPythonCode(statements) {
   const result = []
+  const blockStack = []
   let indent = 0
-  let pendingDedentAfterSingleStatement = false
 
-  for (const statement of statements) {
-    let line = statement.trim()
+  for (let i = 0; i < statements.length; i++) {
+    let line = statements[i].trim()
     if (!line) continue
-
-    // Remove preexisting leading whitespace
     line = line.replace(/^\s+/, '')
 
-    // If previous line was a single terminal statement (break/continue/pass/return)
-    // inside a nested inline block, step back one indentation level
-    if (pendingDedentAfterSingleStatement && !line.endsWith(':')) {
-      if (!/^(else|elif|except|finally)\b/i.test(line)) {
+    if (/^(else|elif)\b/i.test(line)) {
+      while (blockStack.length > 0) {
+        const top = blockStack[blockStack.length - 1]
+        if (top.type === 'if' && !top.hasElse) {
+          indent = top.indent
+          if (line.startsWith('else')) top.hasElse = true
+          break
+        }
+        blockStack.pop()
+      }
+      if (blockStack.length === 0) {
         indent = Math.max(0, indent - 1)
       }
-      pendingDedentAfterSingleStatement = false
+      result.push('    '.repeat(indent) + line)
+      if (line.endsWith(':')) indent++
+      continue
     }
 
-    // De-indent branch headers
-    if (/^(else|elif|except|finally)\b/i.test(line)) {
-      indent = Math.max(0, indent - 1)
-      pendingDedentAfterSingleStatement = false
-    }
-
-    // Add properly indented line (4 spaces per level)
     result.push('    '.repeat(indent) + line)
 
-    // Increase indentation after block openers
     if (line.endsWith(':')) {
+      blockStack.push({
+        type: line.match(/^[a-z]+/i)?.[0]?.toLowerCase() || 'block',
+        indent,
+        hasElse: false,
+      })
       indent++
-      pendingDedentAfterSingleStatement = false
     } else if (/^(break|continue|pass|return\b)/i.test(line)) {
-      // Mark for auto-dedent so following lines don't stay trapped inside the inner if-block
-      pendingDedentAfterSingleStatement = true
+      if (blockStack.length > 0 && blockStack[blockStack.length - 1].type === 'if') {
+        const popped = blockStack.pop()
+        indent = popped.indent
+      }
     }
   }
 
@@ -289,15 +265,39 @@ function formatCode(code) {
   let value = code
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
-    .trim()
 
   value = value.replace(/^```(?:python|py|javascript|js)?\s*/i, '')
   value = value.replace(/\s*```$/i, '')
-  value = value.trim()
 
-  let statements = splitPythonStatements(value)
+  const rawLines = value.split('\n')
+
+  // Check if it is a multi-line snippet (more than 1 non-empty line)
+  const nonEmptyLines = rawLines.filter(l => l.trim().length > 0)
+
+  if (nonEmptyLines.length > 1) {
+    // Preserve multi-line indentation as-is, just normalize tabs
+    while (rawLines.length && !rawLines[0].trim()) rawLines.shift()
+    while (rawLines.length && !rawLines[rawLines.length - 1].trim()) rawLines.pop()
+
+    // Calculate common minimum indentation
+    const indentLengths = rawLines
+      .filter(l => l.trim().length > 0)
+      .map(l => (l.match(/^[ \t]*/)?.[0] || '').replace(/\t/g, '    ').length)
+
+    const minIndent = Math.min(...indentLengths)
+
+    return rawLines
+      .map(line => {
+        if (!line.trim()) return ''
+        const normalized = line.replace(/\t/g, '    ')
+        return normalized.slice(minIndent)
+      })
+      .join('\n')
+  }
+
+  // Single-line or semicolon-separated code fallback
+  let statements = splitPythonStatements(value.trim())
   statements = splitAttachedKeywords(statements)
-
   return buildPythonCode(statements)
 }
 
