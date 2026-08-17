@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -113,32 +114,60 @@ async def start_quiz(
     if end and now > end:
         raise HTTPException(403, "Quiz time has ended")
 
+    # Try to find an existing unsubmitted attempt first.
     existing = await db.execute(
         select(QuizAttempt).where(
             QuizAttempt.user_id == current_user.id,
             QuizAttempt.quiz_id == quiz_id,
-            QuizAttempt.submitted == False,
+            QuizAttempt.submitted.is_(False),
         )
     )
     attempt = existing.scalar_one_or_none()
-    if not attempt:
-        attempt = QuizAttempt(
-            user_id=current_user.id, quiz_id=quiz_id,
-            answers={}, started_at=to_naive(now),
-        )
-        db.add(attempt)
+    if attempt:
+        return AttemptOut(**enrich_attempt(attempt, quiz, current_user))
+
+    # No existing attempt — create one.
+    # Wrap in try/except: two concurrent /start requests (e.g. from
+    # Promise.all on the frontend) can both pass the SELECT above and then
+    # race to INSERT. The unique index lets only one win; the loser gets an
+    # IntegrityError which we recover from by simply re-fetching the row
+    # the winner just created.
+    attempt = QuizAttempt(
+        user_id=current_user.id,
+        quiz_id=quiz_id,
+        answers={},
+        score=0,
+        total=0,
+        submitted=False,
+        started_at=to_naive(now),
+    )
+    db.add(attempt)
+    try:
         await db.commit()
         await db.refresh(attempt)
-        await manager.broadcast({
-            "type": "quiz_started",
-            "user": current_user.username,
-            "quiz_id": quiz_id,
-            "quiz_title": quiz.title,
-            "difficulty": quiz.difficulty.value,
-            "subject": quiz.subject,
-            "attempt_id": attempt.id,
-            "ts": now.isoformat(),
-        })
+    except IntegrityError:
+        # Lost the race — roll back and fetch the winner's row.
+        await db.rollback()
+        refetch = await db.execute(
+            select(QuizAttempt).where(
+                QuizAttempt.user_id == current_user.id,
+                QuizAttempt.quiz_id == quiz_id,
+                QuizAttempt.submitted.is_(False),
+            )
+        )
+        attempt = refetch.scalar_one()
+        return AttemptOut(**enrich_attempt(attempt, quiz, current_user))
+
+    await manager.broadcast({
+        "type": "quiz_started",
+        "user": current_user.username,
+        "quiz_id": quiz_id,
+        "quiz_title": quiz.title,
+        "difficulty": quiz.difficulty.value,
+        "subject": quiz.subject,
+        "attempt_id": attempt.id,
+        "ts": now.isoformat(),
+    })
     return AttemptOut(**enrich_attempt(attempt, quiz, current_user))
 
 

@@ -289,6 +289,23 @@
     @apply border-t border-white/10 my-4;
   }
 
+  /* ── Quiz fullscreen mode ───────────────────────────────────────── */
+  /* Body gets .quiz-active while TakeQuiz is ready & fullscreen is live.
+     We hide the sidebar <aside> and the bottom <nav> so only the quiz
+     content is visible, and collapse the main left padding. */
+  body.quiz-active aside {
+    display: none !important;
+  }
+  body.quiz-active #bottom-nav {
+    display: none !important;
+  }
+  body.quiz-active main {
+    padding-left: 1rem !important;
+    padding-top: 1rem !important;
+    padding-right: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+
   /* Table wrapper + table styling (Results, AdminUsers, AdminQuizzes) */
   .table-wrap {
     @apply overflow-x-auto;

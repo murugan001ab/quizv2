@@ -135,9 +135,13 @@ export function DataProvider({ children }) {
 
   const [link,setLink]=useState('')
 
+  const [fullscreen, setFullscreen] = useState(false)
+
+  const [countTabSwitch,setCountTabSwitch] =useState(0)
+
 
   return (
-    <DataContext.Provider value={{ userQuizzes, myResults, adminStats, adminQuizzes, adminUsers, cacheVersion: version,link ,setLink}}>
+    <DataContext.Provider value={{ userQuizzes, myResults, adminStats, adminQuizzes, adminUsers, cacheVersion: version,link ,setLink,fullscreen,setFullscreen,countTabSwitch,setCountTabSwitch}}>
       {children}
     </DataContext.Provider>
   )

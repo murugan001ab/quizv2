@@ -1,27 +1,62 @@
-/**
- * QuestionText — renders structured question text properly.
- *
- * Handles:
- *   • \n line breaks → real line breaks
- *   • கூற்று (A) / காரணம் (R)  — Assertion-Reason blocks
- *   • பொருத்துக / Match-the-following — two-column table
- *   • I. II. III. / numbered list items
- *   • Plain paragraph text
- */
+import React from 'react'
 
 const ASSERTION_RE = /கூற்று\s*\(A\)|காரணம்\s*\(R\)/
 const MATCH_RE = /பொருத்துக|Match the following/i
-const ROMAN_LINE_RE = /^(I{1,3}V?|VI{0,3}|IX|IV|V?I{0,3})\.\s/  // I. II. III. IV. etc.
-const ALPHA_LIST_RE = /^\([a-d]\)\s/i   // (a) (b) (c) (d)
-const NUMBER_COL_RE = /^\d+\.\s/        // 1. 2. 3. 4.
+const ROMAN_LINE_RE = /^(I{1,3}V?|VI{0,3}|IX|IV|V?I{0,3})\.\s/
+const ALPHA_LIST_RE = /^\([a-d]\)\s/i
+const NUMBER_COL_RE = /^\d+\.\s/
+
+// Detects code keywords, syntax characters, or explicit markdown code blocks
+const CODE_KEYWORD_RE = /(?:output of the following code|console\.log|print\(|def |function|var |let |const |int |public static void|;\s*$)/i
+const CODE_LINE_RE = /(?:[a-zA-Z_]\w*\s*=\s*[^;]+;|print\(|console\.log\(|return |{\s*$|^\s*})/
 
 function isRomanLine(s) { return ROMAN_LINE_RE.test(s.trim()) }
 function isAlphaLine(s) { return ALPHA_LIST_RE.test(s.trim()) }
 function isNumberLine(s) { return NUMBER_COL_RE.test(s.trim()) }
 
-// Split raw text on \n, trim each line, drop empties
 function splitLines(text) {
   return text.split('\n').map(l => l.trim()).filter(Boolean)
+}
+
+// ── Code Question Renderer ────────────────────────────────
+function CodeQuestion({ text }) {
+  // Check if text already has backticks or semicolons dividing statements
+  let promptText = text
+  let codeSnippet = ''
+
+  if (text.includes('```')) {
+    const parts = text.split('```')
+    promptText = parts[0].trim()
+    codeSnippet = parts[1]?.trim() || ''
+  } else {
+    // Split on common question stems
+    const match = text.match(/(.*?(?:following code\??|code\??|output\??))\s*([\s\S]*)/i)
+    if (match && match[2].trim()) {
+      promptText = match[1].trim()
+      // Break semicolon-separated one-liners into neat lines
+      codeSnippet = match[2]
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .join('\n')
+    } else {
+      codeSnippet = text
+      promptText = ''
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      {promptText && (
+        <p className="font-medium text-white/90 leading-relaxed">{promptText}</p>
+      )}
+      {codeSnippet && (
+        <pre className="font-mono text-sm bg-slate-950/80 border border-white/10 rounded-xl p-3.5 text-emerald-300 overflow-x-auto leading-relaxed shadow-inner">
+          <code>{codeSnippet}</code>
+        </pre>
+      )}
+    </div>
+  )
 }
 
 // ── Assertion-Reason renderer ─────────────────────────────
@@ -49,7 +84,6 @@ function AssertionReason({ lines }) {
             </div>
           )
         }
-        // trailing instruction line
         return (
           <p key={i} className="text-white/60 text-sm mt-1 leading-relaxed">
             {line}
@@ -62,7 +96,6 @@ function AssertionReason({ lines }) {
 
 // ── Match-the-following renderer ──────────────────────────
 function MatchTable({ lines }) {
-  // Separate header, left-col lines (a)(b)(c)(d), right-col (1)(2)(3)(4), instruction
   const header = []
   const leftCol = []
   const rightCol = []
@@ -87,10 +120,10 @@ function MatchTable({ lines }) {
           <div className="text-xs font-bold text-white/40 uppercase tracking-wide pb-1 border-b border-white/10">Column A</div>
           <div className="text-xs font-bold text-white/40 uppercase tracking-wide pb-1 border-b border-white/10">Column B</div>
           {Array.from({ length: Math.max(leftCol.length, rightCol.length) }).map((_, i) => (
-            <>
-              <div key={`l${i}`} className="text-sm text-white/90 leading-normal py-0.5">{leftCol[i] || ''}</div>
-              <div key={`r${i}`} className="text-sm text-white/90 leading-normal py-0.5">{rightCol[i] || ''}</div>
-            </>
+            <React.Fragment key={i}>
+              <div className="text-sm text-white/90 leading-normal py-0.5">{leftCol[i] || ''}</div>
+              <div className="text-sm text-white/90 leading-normal py-0.5">{rightCol[i] || ''}</div>
+            </React.Fragment>
           ))}
         </div>
       )}
@@ -145,12 +178,14 @@ export default function QuestionText({ text, className = '' }) {
   const hasAssertion = lines.some(l => ASSERTION_RE.test(l))
   const hasMatch = lines.some(l => MATCH_RE.test(l))
   const hasRoman = lines.some(l => isRomanLine(l))
+  const isCode = text.includes('```') || CODE_KEYWORD_RE.test(text) || lines.some(l => CODE_LINE_RE.test(l))
 
-  if (hasAssertion) return <div className={className}><AssertionReason lines={lines} /></div>
-  if (hasMatch)     return <div className={className}><MatchTable lines={lines} /></div>
-  if (hasRoman)     return <div className={className}><RomanList lines={lines} /></div>
+  if (hasAssertion) return <div className={className}><AssertionReason lines="{lines}"/></div>
+  if (hasMatch)     return <div className={className}><MatchTable lines="{lines}"/></div>
+  if (hasRoman)     return <div className={className}><RomanList lines="{lines}"/></div>
+  if (isCode)       return <div className={className}><CodeQuestion text="{text}"/></div>
 
-  // Plain — just render with proper line breaks
+  // Plain text fallback
   return (
     <div className={`leading-relaxed font-medium text-white/90 ${className}`}>
       {lines.map((line, i) => (

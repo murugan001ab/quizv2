@@ -12,6 +12,8 @@ from sqlalchemy import (
     Enum as SAEnum,
     Text,
     JSON,
+    UniqueConstraint,
+    Index,
 )
 from sqlalchemy.orm import relationship
 
@@ -137,4 +139,21 @@ class QuizAttempt(Base):
     quiz = relationship(
         "Quiz",
         back_populates="attempts",
+    )
+
+    __table_args__ = (
+        # Prevent multiple unsubmitted attempts for the same user+quiz.
+        # We can't use a simple UNIQUE(user_id, quiz_id) because a user
+        # is allowed to have multiple *submitted* attempts (retakes).
+        # The partial unique index below only enforces uniqueness while
+        # submitted=False, which is exactly what we need.
+        # NOTE: create_all won't create this index on an already-existing
+        # table; the raw SQL migration in database.py handles that case.
+        Index(
+            "uq_quiz_attempt_active",
+            "user_id",
+            "quiz_id",
+            unique=True,
+            postgresql_where=Column("submitted") == False,  # noqa: E712
+        ),
     )

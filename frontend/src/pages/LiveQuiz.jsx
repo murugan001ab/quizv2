@@ -6,13 +6,7 @@ import { useParams } from 'react-router-dom'
 import { shuffleIndices } from '../utils/shuffle'
 const KEYS = ['A', 'B', 'C', 'D']
 
-// ── Resume-on-accidental-exit ───────────────────────────────────────────────
-// If the tab/browser closes mid-quiz (accidental exit) but the user is still
-// logged in (their auth token is still valid), we remember which channel they
-// were in so we can offer a one-tap "Resume" instead of making them retype
-// the channel code/password from scratch. The server already supports
-// reconnecting mid-session (see live_ws "Resume mid-session" handling), so
-// this is purely a client-side convenience on top of that.
+
 const STORAGE_PREFIX = 'liveQuiz:lastChannel:'
 
 function loadStoredChannel(userId) {
@@ -30,7 +24,6 @@ function saveStoredChannel(userId, data) {
   try {
     localStorage.setItem(STORAGE_PREFIX + userId, JSON.stringify(data))
   } catch {
-    /* ignore quota/serialization errors */
   }
 }
 
@@ -39,7 +32,6 @@ function clearStoredChannel(userId) {
   try {
     localStorage.removeItem(STORAGE_PREFIX + userId)
   } catch {
-    /* ignore */
   }
 }
 
@@ -257,8 +249,7 @@ export default function LiveQuiz() {
     }
     return orderCacheRef.current[key]
   }
-  // Populated from localStorage on first render if this user has an
-  // unfinished channel from a previous (accidentally-ended) session.
+
   const [resumable, setResumable] = useState(() => loadStoredChannel(user?.id))
 
   const handleJoin = (code, password) => {
@@ -284,15 +275,11 @@ export default function LiveQuiz() {
       toast(socket.error, 'error')
       setJoined(false)
       setResuming(false)
-      // Whatever we had stored (bad password, closed channel, etc.) is no
-      // longer valid — fall back to a plain join form next time.
       clearStoredChannel(user?.id)
       setResumable(null)
     }
   }, [socket.error])
 
-  // Once the server confirms the join, we know the real channel name — keep
-  // localStorage in sync so a future "Resume" card shows the right name.
   useEffect(() => {
     if (joined && socket.channelInfo && user?.id) {
       const existing = loadStoredChannel(user.id) || {}
@@ -300,29 +287,16 @@ export default function LiveQuiz() {
     }
   }, [joined, socket.channelInfo, user?.id])
 
-  // Note: we deliberately keep the stored channel around even after the quiz
-  // finishes — the admin may still be running the post-quiz explanation
-  // walkthrough, and resuming into a finished channel is harmless (the
-  // server just replays the final leaderboard / explain state). If the
-  // channel is later closed by the admin, the next resume attempt will get
-  // a "Channel not found" error, which already clears storage above.
 
   const {code,link_token}=useParams()
 
-  // Shared-link entry point (/live/:code/:link_token). This must only run
-  // once per link, not on every render — the old version called handleJoin
-  // directly in the render body, which re-fired on every socket message
-  // (each one triggers a re-render), tearing down and reopening a brand new
-  // WebSocket in a loop. It also called handleJoin(code, token, null,
-  // link_token) against a (code, password) signature, so the auth token was
-  // sent as the channel password and link_token was silently dropped.
+
   useEffect(() => {
     if (code && link_token && token && !joined) {
       saveStoredChannel(user?.id, { code, password: '', name: null })
       socket.join(code, token, null, link_token)
       setJoined(true)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code, link_token, token])
 
   if (!joined) {

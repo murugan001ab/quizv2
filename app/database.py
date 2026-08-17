@@ -63,3 +63,21 @@ async def init_db():
         await conn.execute(text(
             "ALTER TYPE language ADD VALUE IF NOT EXISTS 'c'"
         ))
+        # Partial unique index: only one *unsubmitted* attempt per user+quiz.
+        # Submitted attempts are excluded so retakes are still allowed.
+        # DELETE duplicates first (keep the newest), then create the index.
+        await conn.execute(text("""
+            DELETE FROM quiz_attempts
+            WHERE submitted = FALSE
+              AND id NOT IN (
+                SELECT DISTINCT ON (user_id, quiz_id) id
+                FROM quiz_attempts
+                WHERE submitted = FALSE
+                ORDER BY user_id, quiz_id, id DESC
+              )
+        """))
+        await conn.execute(text("""
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_quiz_attempt_active
+            ON quiz_attempts (user_id, quiz_id)
+            WHERE submitted = FALSE
+        """))
